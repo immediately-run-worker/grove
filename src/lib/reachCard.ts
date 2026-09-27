@@ -41,8 +41,11 @@ export function stateWord(state: ReachRow['state']): string {
  *  where to go — never a ✗. */
 /** R3-790 — the one spelling of the ungranted-chat cause: the row renders it and
  *  the composer's refusal toast composes from it, so a reword cannot drift the
- *  two surfaces R-GA-1 holds to agreement. */
-export const UNGRANTED_CHAT_CAUSE = "this Grove wasn't granted chat — reading works as normal";
+ *  two surfaces R-GA-1 holds to agreement. The tail is its own constant so the
+ *  cancelled toast composes the SAME clause without splitting a literal at
+ *  runtime (a reword of the cause must never render 'undefined' into copy). */
+export const READING_WORKS_NORMAL = 'reading works as normal';
+export const UNGRANTED_CHAT_CAUSE = `this Grove wasn't granted chat — ${READING_WORKS_NORMAL}`;
 
 export interface ReachRow {
   key: 'packaging' | 'answer' | 'read' | 'draft' | 'apply';

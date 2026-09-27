@@ -15,7 +15,7 @@ import { useOverlayFocusDismiss } from '../hooks/useOverlayFocusDismiss';
 import { getContentRoot } from '../lib/contentRoot';
 import { createReadEntryTool, createGroveMetadataTool, groveAgentTools, toolExecutor } from '../lib/agentTools';
 import { buildSystemPrompt } from '../lib/agentPrompt';
-import { computeReachRows, reachChips, sourceTrustLine, stateWord, showEgressDisclosure, EGRESS_DISCLOSURE, UNGRANTED_CHAT_CAUSE } from '../lib/reachCard';
+import { computeReachRows, reachChips, sourceTrustLine, stateWord, showEgressDisclosure, EGRESS_DISCLOSURE, UNGRANTED_CHAT_CAUSE, READING_WORKS_NORMAL } from '../lib/reachCard';
 import { getCorpusMountId } from '../lib/contentRoot';
 import { transcriptToRows, toolActivityLine, type AgentRow } from '../lib/agentTranscript';
 import { useCatalogAnswered } from '../hooks/useCatalogAnswered';
@@ -238,7 +238,7 @@ export default function GroveAgent({
           : code === 'forbidden'
             ? UNGRANTED_CHAT_CAUSE
             : code === 'cancelled'
-              ? `chat didn't start — ${UNGRANTED_CHAT_CAUSE.split(' — ')[1]}; you can try again anytime`
+              ? `chat didn't start — ${READING_WORKS_NORMAL}; you can try again anytime`
               : 'the model or backend errored — try again in a moment',
       );
       setRows((prev) =>

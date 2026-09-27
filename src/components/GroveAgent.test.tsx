@@ -421,7 +421,7 @@ describe("R3-790 — the ✗ chat row offers its earning affordance (click invok
     await act(async () => {
       await new Promise((r) => setTimeout(r, 16));
     });
-    expect(container.querySelector('.ga-toast')?.textContent).toContain("chat didn't start");
+    expect(container.querySelector('.ga-toast')?.textContent).toContain("chat didn't start — reading works as normal; you can try again anytime");
     // …and the row still reads the forbidden cause with the affordance for the next click.
     expect(container.querySelector('.ga-reach__row--blocked')?.textContent).toContain(
       "this Grove wasn't granted chat",
