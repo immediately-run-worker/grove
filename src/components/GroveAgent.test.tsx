@@ -367,3 +367,91 @@ describe('R3-608 round 2 — the panel returns focus to its (unmounted) trigger'
     expect(container.querySelector('.ga-panel')).toBeNull(); // focus did not reopen
   });
 });
+
+// ── R3-790 — the ungranted chat row's earning affordance ──────────────────────
+
+describe("R3-790 — the ✗ chat row offers its earning affordance (click invokes; the host gesture mints)", () => {
+  beforeAll(() => {
+    HTMLElement.prototype.scrollTo = () => undefined as unknown as void;
+  });
+  const configured = {
+    type: 'llm-provider',
+    provider: {
+      providerId: 'llm.chat.anthropic',
+      hostVouched: true,
+      features: { vision: false, tools: true, jsonMode: true, reasoning: false, maxContextTokens: 100000 },
+    },
+  } as const;
+
+  it('renders Enable chat on the ungranted row — the host-marked forbidden cause', async () => {
+    const { container } = await renderAgent({ writable: false });
+    await push(configured);
+    await push({ type: 'llm-provider', provider: null, ungranted: true });
+    await push({ type: 'api-catalog', methods: [] }); // answered: nothing granted
+    await openPanel(container);
+    const enable = container.querySelector('.ga-reach__enable');
+    expect(enable).toBeTruthy(); // the affordance exists on the ✗ row
+    expect((enable as HTMLElement).textContent).toBe('Enable chat');
+    // …and the row itself still tells the honest cause.
+    expect(container.querySelector('.ga-reach__row--blocked')?.textContent).toContain(
+      "this Grove wasn't granted chat",
+    );
+  });
+
+  it('renders NO affordance when the provider is not configured (that row points at Settings)', async () => {
+    const { container } = await renderAgent({ writable: false });
+    await push({ type: 'llm-provider', provider: null }); // not-configured, not ungranted
+    await push({ type: 'api-catalog', methods: [] });
+    await openPanel(container);
+    expect(container.querySelector('.ga-reach__enable')).toBeNull();
+  });
+
+  it("a click invokes; a DECLINED dialog ('cancelled') keeps the honest row and says so", async () => {
+    runAgentMock.mockClear();
+    runAgentMock.mockImplementationOnce(() => {
+      const e = new Error('declined') as Error & { code?: string };
+      e.code = 'cancelled';
+      throw e;
+    });
+    const { container } = await renderAgent({ writable: false });
+    await push(configured);
+    await push({ type: 'llm-provider', provider: null, ungranted: true });
+    await push({ type: 'api-catalog', methods: [] });
+    await openPanel(container);
+    await act(async () => {
+      (container.querySelector('.ga-reach__enable') as HTMLButtonElement).click();
+    });
+    // The invoke RAN (runAgent was called once — the gesture's trigger)…
+    expect(runAgentMock).toHaveBeenCalledTimes(1);
+    // …the decline surfaced honestly…
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 16));
+    });
+    expect(container.querySelector('.ga-toast')?.textContent).toContain("chat wasn't enabled");
+    // …and the row still reads the forbidden cause with the affordance for the next click.
+    expect(container.querySelector('.ga-reach__row--blocked')?.textContent).toContain(
+      "this Grove wasn't granted chat",
+    );
+    expect(container.querySelector('.ga-reach__enable')).toBeTruthy();
+  });
+
+  it('a click invokes; a still-FORBIDDEN answer surfaces the refusal toast (pre-gesture hosts)', async () => {
+    runAgentMock.mockImplementationOnce(() => {
+      const e = new Error('forbidden') as Error & { code?: string };
+      e.code = 'forbidden';
+      throw e;
+    });
+    const { container } = await renderAgent({ writable: false });
+    await push(configured);
+    await push({ type: 'llm-provider', provider: null, ungranted: true });
+    await push({ type: 'api-catalog', methods: [] });
+    await openPanel(container);
+    await act(async () => {
+      (container.querySelector('.ga-reach__enable') as HTMLButtonElement).click();
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 16));
+    });
+    expect(container.querySelector('.ga-toast')?.textContent).toContain("this Grove wasn't granted chat");
+  });
+});

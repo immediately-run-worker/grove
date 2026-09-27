@@ -44,6 +44,11 @@ export interface ReachRow {
   label: string;
   state: 'ok' | 'blocked' | 'neutral' | 'elsewhere';
   cause?: string;
+  /** R3-790 — the row's earning affordance: on the ✗ chat row, an 'Enable chat'
+   *  control whose CLICK invokes (the host's lazy consent gesture mints on that
+   *  same activation, site-main#612). Declared here so the card stays the one
+   *  computed surface; the panel renders it, never invents it. */
+  action?: 'enable-chat';
   /** Where a `'elsewhere'` row's outcome happens — rendered after `→`, never a ✗. */
   destination?: string;
   /** Chips this row contributes when ✓ — the panel renders exactly these. */
@@ -151,6 +156,9 @@ export function computeReachRows({
       label: 'Answer questions about this wiki',
       state: 'blocked',
       cause: "this Grove wasn't granted chat — reading works as normal",
+      // R3-790: the provider resolves but the grant is missing — exactly the shape
+      // the host's lazy gesture earns on this row's own click.
+      action: 'enable-chat',
     };
   } else if (!chatGranted) {
     answer = catalogAnswered
@@ -159,6 +167,12 @@ export function computeReachRows({
           label: 'Answer questions about this wiki',
           state: 'blocked',
           cause: "this Grove wasn't granted chat — reading works as normal",
+          // R3-790: the affordance only when a provider RESOLVES (status
+          // 'configured' with the grant missing) — on a keyless host the invoke's
+          // earning path is the SP-7 connect flow, which the not-configured copy
+          // already names (Settings); offering both rows' affordances here would
+          // blur which half is missing.
+          ...(providerState.status === 'configured' ? { action: 'enable-chat' as const } : {}),
         }
       : // The host has not answered the catalog. We know nothing about the grant, so name
         // nothing — the same shape `unknown` uses for an unanswered provider.
