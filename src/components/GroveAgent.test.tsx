@@ -374,14 +374,6 @@ describe("R3-790 — the ✗ chat row offers its earning affordance (click invok
   beforeAll(() => {
     HTMLElement.prototype.scrollTo = () => undefined as unknown as void;
   });
-  const configured = {
-    type: 'llm-provider',
-    provider: {
-      providerId: 'llm.chat.anthropic',
-      hostVouched: true,
-      features: { vision: false, tools: true, jsonMode: true, reasoning: false, maxContextTokens: 100000 },
-    },
-  } as const;
 
   it('renders Enable chat on the ungranted row — the host-marked forbidden cause', async () => {
     const { container } = await renderAgent({ writable: false });
