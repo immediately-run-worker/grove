@@ -15,7 +15,7 @@ import { useOverlayFocusDismiss } from '../hooks/useOverlayFocusDismiss';
 import { getContentRoot } from '../lib/contentRoot';
 import { createReadEntryTool, createGroveMetadataTool, groveAgentTools, toolExecutor } from '../lib/agentTools';
 import { buildSystemPrompt } from '../lib/agentPrompt';
-import { computeReachRows, reachChips, sourceTrustLine, stateWord, showEgressDisclosure, EGRESS_DISCLOSURE } from '../lib/reachCard';
+import { computeReachRows, reachChips, sourceTrustLine, stateWord, showEgressDisclosure, EGRESS_DISCLOSURE, UNGRANTED_CHAT_CAUSE, READING_WORKS_NORMAL } from '../lib/reachCard';
 import { getCorpusMountId } from '../lib/contentRoot';
 import { transcriptToRows, toolActivityLine, type AgentRow } from '../lib/agentTranscript';
 import { useCatalogAnswered } from '../hooks/useCatalogAnswered';
@@ -236,8 +236,10 @@ export default function GroveAgent({
         code === 'auth-required'
           ? 'no model key connected — add one in Settings'
           : code === 'forbidden'
-            ? "this Grove wasn't granted chat — reading works as normal"
-            : 'the model or backend errored — try again in a moment',
+            ? UNGRANTED_CHAT_CAUSE
+            : code === 'cancelled'
+              ? `chat didn't start — ${READING_WORKS_NORMAL}; you can try again anytime`
+              : 'the model or backend errored — try again in a moment',
       );
       setRows((prev) =>
         prev.length && prev[prev.length - 1].kind === 'assistant' && !prev[prev.length - 1].text ? prev.slice(0, -1) : prev,
@@ -316,6 +318,22 @@ export default function GroveAgent({
                     <span className="ga-reach__label">{r.label}</span>
                     {r.cause && <span className="ga-reach__cause">{r.cause}</span>}
                     {r.destination && <span className="ga-reach__cause">{`→ ${r.destination}`}</span>}
+                    {r.action === 'enable-chat' && (
+                      // R3-790: the earning affordance. Its click invokes ask() — the
+                      // ungranted llm:chat invoke fires the HOST's consent dialog on this
+                      // same activation (site-main#612), Allow mints + lifts, and the
+                      // same ask proceeds to stream. A decline answers 'cancelled' (the
+                      // catch below) and the row stays honestly ✗.
+                      <button
+                        type="button"
+                        className="ga-reach__enable"
+                        onClick={() =>
+                          void ask(draft.trim() || 'Answer in one sentence: what can you tell me about this wiki?')
+                        }
+                      >
+                        Enable chat
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

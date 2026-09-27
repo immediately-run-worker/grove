@@ -510,3 +510,31 @@ describe("R-GA-6 — the egress disclosure is unconditional when a provider is b
     expect(showEgressDisclosure({ status: "not-configured" })).toBe(false);
   });
 });
+
+
+// ── R3-790 — the earning affordance's arms ────────────────────────────────────
+
+describe('R3-790 — the ✗ chat row carries the earning affordance on its arms', () => {
+  const configured: ChatProviderState = {
+    status: 'configured',
+    provider: { providerId: 'llm.chat.anthropic', hostVouched: true, features: { vision: false, tools: true, jsonMode: true, reasoning: false, maxContextTokens: 100000 } },
+  };
+  const base = { writable: true, sourceShared: false, catalogAnswered: true, mountId: null };
+
+  it('the host-marked ungranted arm carries it', () => {
+    const rows = computeReachRows({ ...base, providerState: { status: 'ungranted' } as ChatProviderState, chatGranted: false, toolsSupported: true });
+    expect(rows.find((r) => r.key === 'answer')?.action).toBe('enable-chat');
+  });
+
+  it("the belt arm carries it when the provider RESOLVES (configured, catalog answered, grant missing)", () => {
+    const rows = computeReachRows({ ...base, providerState: configured, chatGranted: false, toolsSupported: true });
+    expect(rows.find((r) => r.key === 'answer')?.action).toBe('enable-chat');
+  });
+
+  it('no arm carries it when the catalog is unanswered, or the provider is keyless', () => {
+    const neutral = computeReachRows({ ...base, catalogAnswered: false, providerState: configured, chatGranted: false, toolsSupported: true });
+    expect(neutral.find((r) => r.key === 'answer')?.action).toBeUndefined();
+    const keyless = computeReachRows({ ...base, providerState: { status: 'not-configured' } as ChatProviderState, chatGranted: false, toolsSupported: true });
+    expect(keyless.find((r) => r.key === 'answer')?.action).toBeUndefined();
+  });
+});

@@ -39,11 +39,24 @@ export function stateWord(state: ReachRow['state']): string {
  *
  *  `state: 'elsewhere'` is the apply row: the outcome happens at another surface, which is
  *  where to go — never a ✗. */
+/** R3-790 — the one spelling of the ungranted-chat cause: the row renders it and
+ *  the composer's refusal toast composes from it, so a reword cannot drift the
+ *  two surfaces R-GA-1 holds to agreement. The tail is its own constant so the
+ *  cancelled toast composes the SAME clause without splitting a literal at
+ *  runtime (a reword of the cause must never render 'undefined' into copy). */
+export const READING_WORKS_NORMAL = 'reading works as normal';
+export const UNGRANTED_CHAT_CAUSE = `this Grove wasn't granted chat — ${READING_WORKS_NORMAL}`;
+
 export interface ReachRow {
   key: 'packaging' | 'answer' | 'read' | 'draft' | 'apply';
   label: string;
   state: 'ok' | 'blocked' | 'neutral' | 'elsewhere';
   cause?: string;
+  /** R3-790 — the row's earning affordance: on the ✗ chat row, an 'Enable chat'
+   *  control whose CLICK invokes (the host's lazy consent gesture mints on that
+   *  same activation, site-main#612). Declared here so the card stays the one
+   *  computed surface; the panel renders it, never invents it. */
+  action?: 'enable-chat';
   /** Where a `'elsewhere'` row's outcome happens — rendered after `→`, never a ✗. */
   destination?: string;
   /** Chips this row contributes when ✓ — the panel renders exactly these. */
@@ -150,7 +163,11 @@ export function computeReachRows({
       key: 'answer',
       label: 'Answer questions about this wiki',
       state: 'blocked',
-      cause: "this Grove wasn't granted chat — reading works as normal",
+      cause: UNGRANTED_CHAT_CAUSE,
+      // R3-790: the host's MARK says the grant is missing (provider and key state
+      // unknown — the mark does not tell); the invoke this row's own click makes is
+      // what the host's lazy gesture earns on that same activation.
+      action: 'enable-chat',
     };
   } else if (!chatGranted) {
     answer = catalogAnswered
@@ -158,7 +175,13 @@ export function computeReachRows({
           key: 'answer',
           label: 'Answer questions about this wiki',
           state: 'blocked',
-          cause: "this Grove wasn't granted chat — reading works as normal",
+          cause: UNGRANTED_CHAT_CAUSE,
+          // R3-790: the affordance only when a provider RESOLVES (status
+          // 'configured' with the grant missing) — on a keyless host the invoke's
+          // earning path is the SP-7 connect flow, which the not-configured copy
+          // already names (Settings); offering both rows' affordances here would
+          // blur which half is missing.
+          ...(providerState.status === 'configured' ? { action: 'enable-chat' as const } : {}),
         }
       : // The host has not answered the catalog. We know nothing about the grant, so name
         // nothing — the same shape `unknown` uses for an unanswered provider.
