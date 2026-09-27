@@ -385,7 +385,8 @@ describe("R3-790 — the ✗ chat row offers its earning affordance (click invok
 
   it('renders Enable chat on the ungranted row — the host-marked forbidden cause', async () => {
     const { container } = await renderAgent({ writable: false });
-    await push(configured);
+    // The cold mark — no prior configured push: the host strips the provider from
+    // every answer to an ungranted frame (the R3-688 test's shape).
     await push({ type: 'llm-provider', provider: null, ungranted: true });
     await push({ type: 'api-catalog', methods: [] }); // answered: nothing granted
     await openPanel(container);
@@ -414,7 +415,8 @@ describe("R3-790 — the ✗ chat row offers its earning affordance (click invok
       throw e;
     });
     const { container } = await renderAgent({ writable: false });
-    await push(configured);
+    // The cold mark — no prior configured push: the host strips the provider from
+    // every answer to an ungranted frame (the R3-688 test's shape).
     await push({ type: 'llm-provider', provider: null, ungranted: true });
     await push({ type: 'api-catalog', methods: [] });
     await openPanel(container);
@@ -427,7 +429,7 @@ describe("R3-790 — the ✗ chat row offers its earning affordance (click invok
     await act(async () => {
       await new Promise((r) => setTimeout(r, 16));
     });
-    expect(container.querySelector('.ga-toast')?.textContent).toContain("chat wasn't enabled");
+    expect(container.querySelector('.ga-toast')?.textContent).toContain("chat didn't start");
     // …and the row still reads the forbidden cause with the affordance for the next click.
     expect(container.querySelector('.ga-reach__row--blocked')?.textContent).toContain(
       "this Grove wasn't granted chat",
@@ -442,7 +444,8 @@ describe("R3-790 — the ✗ chat row offers its earning affordance (click invok
       throw e;
     });
     const { container } = await renderAgent({ writable: false });
-    await push(configured);
+    // The cold mark — no prior configured push: the host strips the provider from
+    // every answer to an ungranted frame (the R3-688 test's shape).
     await push({ type: 'llm-provider', provider: null, ungranted: true });
     await push({ type: 'api-catalog', methods: [] });
     await openPanel(container);
@@ -453,5 +456,74 @@ describe("R3-790 — the ✗ chat row offers its earning affordance (click invok
       await new Promise((r) => setTimeout(r, 16));
     });
     expect(container.querySelector('.ga-toast')?.textContent).toContain("this Grove wasn't granted chat");
+  });
+});
+
+// ── R3-790 round 1 — the GRANTED leg: the click's invoke proceeds when the grant lands ──
+
+describe("R3-790 — the granted leg (click → invoke → the grant lands → the ask proceeds, the row flips)", () => {
+  beforeAll(() => {
+    HTMLElement.prototype.scrollTo = () => undefined as unknown as void;
+  });
+  const configured = {
+    type: 'llm-provider',
+    provider: {
+      providerId: 'llm.chat.anthropic',
+      hostVouched: true,
+      features: { vision: false, tools: true, jsonMode: true, reasoning: false, maxContextTokens: 100000 },
+    },
+  } as const;
+  const grantedCatalog = {
+    type: 'api-catalog',
+    methods: [{ name: 'llm:chat', capability: 'llm:chat', stream: true }],
+  } as const;
+
+  it("the affordance's click drives the invoke; the granted catalog flips the row ✓ and the input enables", async () => {
+    runAgentMock.mockClear();
+    runAgentMock.mockImplementationOnce(async () => [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Answer in one sentence: what can you tell me about this wiki?' }],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'This wiki is a small corpus about enabling chat.' }],
+      },
+    ]);
+    const { container } = await renderAgent({ writable: false });
+    await push({ type: 'llm-provider', provider: null, ungranted: true });
+    await push({ type: 'api-catalog', methods: [] });
+    await openPanel(container);
+    // Before: the honest ✗ row + the affordance.
+    expect(container.querySelector('.ga-reach__row--blocked')?.textContent).toContain(
+      "this Grove wasn't granted chat",
+    );
+    await act(async () => {
+      (container.querySelector('.ga-reach__enable') as HTMLButtonElement).click();
+    });
+    // The invoke RAN (the gesture's trigger).
+    expect(runAgentMock).toHaveBeenCalledTimes(1);
+    // The grant lands (the host's mint + lift answers the channels): push the
+    // granted catalog + the configured provider — the envelope recomputes.
+    await push(grantedCatalog);
+    await push(configured);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 16));
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 16));
+    });
+    // The ask PROCEEDED: the assistant answer is in the body…
+    expect(container.querySelector('.ga-body')?.textContent).toContain('enabling chat');
+    // …the ANSWER row flipped ✓ (the read-only draft row stays honestly ✗ — that is
+    // its own row, not this one)…
+    const answerRow = [...container.querySelectorAll('.ga-reach__row')].find((r) =>
+      r.textContent?.includes('Answer questions about this wiki'),
+    );
+    expect(answerRow?.className).not.toContain('blocked');
+    expect(container.querySelector('.ga-reach__enable')).toBeNull();
+    // …and the composer input is ENABLED (canAsk true).
+    const input = container.querySelector('.ga-foot input') as HTMLInputElement;
+    expect(input?.disabled).toBe(false);
   });
 });

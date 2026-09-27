@@ -39,6 +39,11 @@ export function stateWord(state: ReachRow['state']): string {
  *
  *  `state: 'elsewhere'` is the apply row: the outcome happens at another surface, which is
  *  where to go — never a ✗. */
+/** R3-790 — the one spelling of the ungranted-chat cause: the row renders it and
+ *  the composer's refusal toast composes from it, so a reword cannot drift the
+ *  two surfaces R-GA-1 holds to agreement. */
+export const UNGRANTED_CHAT_CAUSE = "this Grove wasn't granted chat — reading works as normal";
+
 export interface ReachRow {
   key: 'packaging' | 'answer' | 'read' | 'draft' | 'apply';
   label: string;
@@ -155,9 +160,10 @@ export function computeReachRows({
       key: 'answer',
       label: 'Answer questions about this wiki',
       state: 'blocked',
-      cause: "this Grove wasn't granted chat — reading works as normal",
-      // R3-790: the provider resolves but the grant is missing — exactly the shape
-      // the host's lazy gesture earns on this row's own click.
+      cause: UNGRANTED_CHAT_CAUSE,
+      // R3-790: the host's MARK says the grant is missing (provider and key state
+      // unknown — the mark does not tell); the invoke this row's own click makes is
+      // what the host's lazy gesture earns on that same activation.
       action: 'enable-chat',
     };
   } else if (!chatGranted) {
@@ -166,7 +172,7 @@ export function computeReachRows({
           key: 'answer',
           label: 'Answer questions about this wiki',
           state: 'blocked',
-          cause: "this Grove wasn't granted chat — reading works as normal",
+          cause: UNGRANTED_CHAT_CAUSE,
           // R3-790: the affordance only when a provider RESOLVES (status
           // 'configured' with the grant missing) — on a keyless host the invoke's
           // earning path is the SP-7 connect flow, which the not-configured copy

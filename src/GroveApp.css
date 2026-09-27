@@ -2686,6 +2686,26 @@ button.grove-search__row {
 .ga-reach__cause {
   color: var(--ink-2);
 }
+/* R3-790 — the ✗ chat row's earning affordance: a small token'd control inside
+   the reach card (the .ga-chip vocabulary, scaled to the card's 12.5px context). */
+.ga-reach__enable {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  padding: 3px 10px;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: .14s;
+}
+.ga-reach__enable:hover,
+.ga-reach__enable:focus-visible {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
 .ga-egress {
   margin: 0;
   padding: 8px 16px;
