@@ -3,6 +3,7 @@ import { Include, Link } from '@immediately-run/sdk';
 import { useShell, EDIT_REFUSED_NOTICE } from '../lib/shell';
 import { keyToHref, keyToRepoRel } from '../lib/content';
 import { crumb } from '../lib/wiki';
+import { useHeadingFragmentUrl } from '../hooks/useHeadingFragmentUrl';
 import DirectoryView from './DirectoryView';
 import EntryHeader from './EntryHeader';
 import SafeEntryBody from './SafeEntryBody';
@@ -21,6 +22,11 @@ declare const module: any;
 export default function PageView() {
   const { entryKey, includePath, layout, showRails, mins, missing, suggestion, writable, openEditor, editBusy, editRefused, editHint, vw, safe, directory } =
     useShell();
+
+  // The reading view owns the headings, so it owns the outgoing half of deep
+  // linking: same-page heading navigation writes the fragment into the host's
+  // address bar (`useHeadingFragmentUrl` for the whole story).
+  useHeadingFragmentUrl();
 
   // A folder URL. `checking` renders nothing rather than the 404: the readdir that
   // decides between them is one RPC away, and a 404 that appears and then turns into a
