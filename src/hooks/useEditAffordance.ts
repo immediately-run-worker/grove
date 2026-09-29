@@ -32,7 +32,7 @@ export interface EditAffordance {
    *
    * Under a fork the app and the corpus are one repo, so "save" and "propose a
    * change" are one story. Under dispatch they are two mounts — and since
-   * R3-643's host half (site-main #576) BOTH are wired: the write lands in the
+   *  R3-643's host half (site-main #576) both are wired: the write lands in the
    * corpus mount, and the contribute flow forks/branches/opens the PR against
    * the CONTENT repo (the viewer's repo receives nothing).
    */
