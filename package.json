@@ -28,7 +28,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "preview": "vite preview",
-    "verify": "npm run check:llms && npm run check:engine-api:selftest && npm run check:engine-api && npm run check:manifest && npm run check:deps && npm run check:published && npm run check:theme-contrast && npm run check:theme-token-only && npm run lint && npm run build && npm run test && npm run check:lock-version",
+    "verify": "npm run check:llms && npm run check:engine-api:selftest && npm run check:engine-api && npm run check:manifest && npm run check:deps && npm run check:published && npm run check:theme-contrast && npm run check:theme-token-only && npm run check:lock-version && npm run lint && npm run build && npm run test",
     "check:theme-contrast": "node scripts/check-theme-contrast.mjs --self-test && node scripts/check-theme-contrast.mjs",
     "check:theme-token-only": "node scripts/check-theme-token-only.mjs --self-test && node scripts/check-theme-token-only.mjs",
     "check:manifest": "node scripts/check-manifest.mjs --self-test && node scripts/check-manifest.mjs",
