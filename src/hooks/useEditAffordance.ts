@@ -30,14 +30,11 @@ export interface EditAffordance {
   /**
    * What a save actually does, so the affordance can say so.
    *
-   * **A stated residual (2026-08-27, R3-266).** The CoW overlay and the contribute (PR)
-   * flow are anchored on the APP's repo. Under a fork the app and the corpus are one
-   * repo, so "save" and "propose a change" are one story. Under dispatch they are two:
-   * the write lands in the corpus mount correctly, and *"open a PR against the content
-   * repo"* has no wired target. That is real remaining work — and it is not a reason to
-   * withhold editing, because a viewer that saves but cannot yet propose is strictly
-   * better than one that refuses to save. It IS a reason not to imply otherwise, so the
-   * chrome labels the dispatched case for what it is.
+   * Under a fork the app and the corpus are one repo, so "save" and "propose a
+   * change" are one story. Under dispatch they are two mounts — and since
+   * R3-643's host half (site-main #576) both are wired: the write lands in the
+   * corpus mount, and the contribute flow forks/branches/opens the PR against
+   * the CONTENT repo (the viewer's repo receives nothing).
    */
   editHint: string;
 }
@@ -92,7 +89,7 @@ export function useEditAffordance(readOnly: boolean): EditAffordance {
   );
 
   const editHint = corpus.dispatched
-    ? 'Edits save to the mounted content. Proposing a change back to its repository is not wired yet.'
+    ? 'Edits save to the mounted content, and can be proposed back to its repository as a PR.'
     : 'Edit this entry';
 
   return { writable, busy, refused, openEditor, editHint };

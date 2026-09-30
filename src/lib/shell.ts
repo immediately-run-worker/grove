@@ -44,8 +44,9 @@ export interface GroveShell {
   /** True when the host REFUSED the last edit request — render it where the
    *  affordance was offered (3.3.1, R3-608); a cancelled request never sets it. */
   editRefused: boolean;
-  /** What a save actually does, for the affordance's title — under dispatch it says that
-   *  proposing a change back to the content repo is not wired yet (R3-266's residual). */
+  /** What a save actually does, for the affordance's title — under dispatch it says
+   *  the write lands in the mounted content and can be proposed back as a PR
+   *  (R3-643 / site-main #576 wired the contribute flow to the content repo). */
   editHint: string;
   siteTitle: string;
   /** Interpreter mode (TRUST_MODES §5): render this entry's body through the
