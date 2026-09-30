@@ -14,7 +14,8 @@
 // LITERAL's keys, not a regex over the whole file. That is the distinction R3-277c asks
 // for: reformatting `mdxComponents.ts` must not change the outcome.
 
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -186,17 +187,11 @@ for (const [subpath, target] of Object.entries(pkg.exports ?? {})) {
 // year, and "an inert field in a file people copy is a field people will copy".
 
 const LAYOUTS_DIR = join(root, 'content', '_layouts');
-const starterIds =
-  existsSync(LAYOUTS_DIR)
-    ? readdirSync(LAYOUTS_DIR, { withFileTypes: true })
-        .filter((e) => e.isFile() && /\.mdx?$/.test(e.name))
-        .map((e) => e.name.replace(/\.mdx?$/, ''))
-    : [];
 
-/** The frontmatter block of a starter, as key → value (scalars only — that is all a
+/** The frontmatter block of a starter file, as key → value (scalars only — that is all a
  *  starter declares). */
 function frontmatterOf(file) {
-  const src = readFileSync(join(LAYOUTS_DIR, file), 'utf8');
+  const src = readFileSync(file, 'utf8');
   const m = src.match(/^---\n([\s\S]*?)\n---/);
   const fm = {};
   if (m) for (const line of m[1].split('\n')) {
@@ -206,32 +201,86 @@ function frontmatterOf(file) {
   return fm;
 }
 
-const declaredLayouts = manifest.layouts ?? {};
-for (const [id, entry] of Object.entries(declaredLayouts)) {
-  if (entry.ships && !starterIds.includes(id)) {
-    errors.push(`  layouts.${id} — declared ships:true but content/_layouts/${id}.mdx does not exist.`);
+/** The layouts rule, extracted so the self-test can drive planted corpora through it
+ *  (R3-662). `starters` is the id → on-disk file map — kept, never re-derived, so a
+ *  `.md` starter is read back as `.md`. A `ships: true` entry whose file is missing
+ *  is RECORDED and skipped — the collected verdict, never an ENOENT stack. */
+function layoutRuleErrors(declaredLayouts, starters) {
+  const ruleErrors = [];
+  for (const [id, entry] of Object.entries(declaredLayouts)) {
+    if (entry.ships && !starters.has(id)) {
+      ruleErrors.push(`  layouts.${id} — declared ships:true but content/_layouts/${id} starter does not exist.`);
+      continue; // recorded; do not read a file that does not exist
+    }
+    if (entry.ships) {
+      const starter = starters.get(id);
+      // Unreadable/ambiguous starters are reported by the caller (the recorded
+      // verdict, never a stack) — the rule reads only what readStarters parsed.
+      if (starter.error) continue;
+      const fm = starter.frontmatter;
+      if (fm.layoutRole !== entry.layoutRole) {
+        ruleErrors.push(
+          `  layouts.${id} — manifest says layoutRole:${entry.layoutRole}, the starter's frontmatter says ` +
+            `${JSON.stringify(fm.layoutRole)}. The two must agree.`,
+        );
+      }
+      if (fm.nav && fm.nav !== 'top' && fm.nav !== 'side') {
+        ruleErrors.push(`  layouts.${id} — nav:${fm.nav} is neither 'top' nor 'side'; resolveNavMode would silently fall back.`);
+      }
+    }
   }
-  if (entry.ships) {
-    const fm = frontmatterOf(`${id}.mdx`);
-    if (fm.layoutRole !== entry.layoutRole) {
-      errors.push(
-        `  layouts.${id} — manifest says layoutRole:${entry.layoutRole}, the starter's frontmatter says ` +
-          `${JSON.stringify(fm.layoutRole)}. The two must agree.`,
+  for (const [id, starter] of starters) {
+    // An unreadable/ambiguous starter already has its recorded verdict — and
+    // the orphan verdict cannot claim an unreadable file 'renders'.
+    if (starter.error) continue;
+    if (!declaredLayouts[id]) {
+      ruleErrors.push(
+        `  ${starter.displayPath} — a starter on disk with NO manifest entry. It renders (when ` +
+          `copied) but nothing declares it: a corpus checker cannot find it and an agent cannot discover it.`,
       );
     }
-    if (fm.nav && fm.nav !== 'top' && fm.nav !== 'side') {
-      errors.push(`  layouts.${id} — nav:${fm.nav} is neither 'top' nor 'side'; resolveNavMode would silently fall back.`);
+  }
+  return ruleErrors;
+}
+
+/** Read content/_layouts/ once, keeping the id → on-disk filename mapping.
+ *  Per-file read failures are RECORDED on the entry (the verdict is the point —
+ *  never a raw stack), and a same-stem .md/.mdx pair records an ambiguous
+ *  entry: which frontmatter would be judged must never depend on readdir order. */
+function readStarters(layoutsDir) {
+  const starters = new Map();
+  if (!existsSync(layoutsDir)) return starters;
+  for (const e of readdirSync(layoutsDir, { withFileTypes: true })) {
+    if (e.isFile() && /\.mdx?$/.test(e.name)) {
+      const file = join(layoutsDir, e.name);
+      const id = e.name.replace(/\.mdx?$/, '');
+      const displayPath = `content/_layouts/${e.name}`;
+      if (starters.has(id)) {
+        starters.set(id, {
+          displayPath: `${starters.get(id).displayPath} + ${displayPath}`,
+          error: `ambiguous starter id '${id}' — both ${starters.get(id).displayPath} and ${displayPath} exist`,
+          ambiguous: true,
+        });
+        continue;
+      }
+      try {
+        starters.set(id, { displayPath, frontmatter: frontmatterOf(file) });
+      } catch (err) {
+        starters.set(id, { displayPath, error: err.code ?? err.message });
+      }
     }
   }
+  return starters;
 }
-for (const id of starterIds) {
-  if (!declaredLayouts[id]) {
-    errors.push(
-      `  content/_layouts/${id}.mdx — a starter on disk with NO manifest entry. It renders (when ` +
-        `copied) but nothing declares it: a corpus checker cannot find it and an agent cannot discover it.`,
-    );
+
+const declaredLayouts = manifest.layouts ?? {};
+const starters = readStarters(LAYOUTS_DIR);
+for (const [id, starter] of starters) {
+  if (starter.error) {
+    errors.push(`  ${starter.displayPath} — ${starter.error}.`);
   }
 }
+errors.push(...layoutRuleErrors(declaredLayouts, starters));
 
 // Collection shapes ride on engine components; a declared component that is not in the
 // vocabulary is the same lie as an undeclared one in the components section.
@@ -258,7 +307,7 @@ console.log(
   `OK ${manifest.viewer.name}: ${declared.size} components declared, ` +
     `${[...declared].filter((n) => manifest.components[n].overridable).length} overridable, ` +
     `${Object.keys(pkg.exports ?? {}).length} export subpaths resolve, ` +
-    `${starterIds.length} layout starter(s), ${Object.keys(collections).length} collection shape(s).`,
+    `${starters.size} layout starter(s), ${Object.keys(collections).length} collection shape(s).`,
 );
 
 // ── self-test ─────────────────────────────────────────────────────────────────
@@ -291,6 +340,68 @@ const selfTest = () => {
   cases.push(['a Lodestar manifest validates through the same schema', () => schemaErrors(lodestar).length === 0]);
   cases.push(['a manifest with an unknown tier is rejected', () =>
     schemaErrors({ ...lodestar, components: { X: { tier: 'galaxy', overridable: true } } }).length > 0]);
+
+  // R3-662 — the layouts rule's two crash triggers, planted and driven through the
+  // REAL read path (readStarters over a tmp corpus). Before the fix both died on a
+  // raw ENOENT after the rule had already recorded its verdict; the verdict is the
+  // whole point, so these prove "the collected verdict, never a stack".
+  const plantCorpus = (files) => {
+    const dir = mkdtempSync(join(tmpdir(), 'grove-layouts-'));
+    for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
+    return dir;
+  };
+  cases.push(['a ships:true entry with a missing starter records the verdict and does NOT crash', () => {
+    const dir = plantCorpus({});
+    try {
+      const errors = layoutRuleErrors({ ghost: { ships: true, layoutRole: 'page' } }, readStarters(dir));
+      return errors.length === 1 && errors[0].includes('layouts.ghost') && errors[0].includes('does not exist');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }]);
+  cases.push(['a .md starter is read back with its own extension (no fabricated .mdx)', () => {
+    // note.md declares layoutRole:page but the manifest says layoutRole:article —
+    // the mismatch verdict proves the .md file's own frontmatter was read.
+    const dir = plantCorpus({ 'note.md': '---\nlayoutRole: page\n---\n# Note\n' });
+    try {
+      const errors = layoutRuleErrors({ note: { ships: true, layoutRole: 'article' } }, readStarters(dir));
+      return errors.length === 1 && errors[0].includes('"page"') && errors[0].includes('layouts.note');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }]);
+  cases.push(['an unreadable starter is recorded, never a stack (the EACCES trigger)', () => {
+    const dir = plantCorpus({ 'sealed.mdx': '---\nlayoutRole: page\n---\n' });
+    try {
+      chmodSync(join(dir, 'sealed.mdx'), 0o000);
+      const starters = readStarters(dir);
+      const entry = starters.get('sealed');
+      return entry && entry.error !== undefined && entry.frontmatter === undefined;
+    } finally {
+      chmodSync(join(dir, 'sealed.mdx'), 0o644);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }]);
+  cases.push(['a same-stem .md + .mdx pair records an ambiguous verdict (never readdir roulette)', () => {
+    const dir = plantCorpus({
+      'twin.md': '---\nlayoutRole: page\n---\n',
+      'twin.mdx': '---\nlayoutRole: page\n---\n',
+    });
+    try {
+      const entry = readStarters(dir).get('twin');
+      return entry && /ambiguous starter id 'twin'/.test(entry.error ?? '') && entry.error.includes('.md') && entry.error.includes('.mdx');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }]);
+  cases.push(['a shipping .md starter whose frontmatter agrees passes', () => {
+    const dir = plantCorpus({ 'note.md': '---\nlayoutRole: page\n---\n# Note\n' });
+    try {
+      return layoutRuleErrors({ note: { ships: true, layoutRole: 'page' } }, readStarters(dir)).length === 0;
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }]);
 
   let failed = 0;
   for (const [name, fn] of cases) {
