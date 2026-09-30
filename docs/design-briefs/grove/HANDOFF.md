@@ -73,6 +73,7 @@ Show the same entry rendered under each, side by side, to make the claim visible
 | `04-extensibility-views` | the agent-built views: animated **timeline**, **family tree**, **directory/table** | proves the extension surface is designable |
 | `05-states-and-theming` | loading skeletons, empty, error/404/broken-link, read-only viewer; the default + alternate **theme showcase**; the Grove app icon | the unglamorous surfaces + the themeability proof |
 | `06-agent-conversation` | Grove's **embedded coding-agent conversation** — an **integral, always-present** surface with a minimal non-obscuring resting affordance (Safari-URL-bar style; **iterate** the form), proposed-change previews, all states, mobile, the workbench hand-off | Grove's **primary authoring surface**, baked in front and center |
+| `08-story-river` | the **story river**: a TiddlyWiki-style reading mode, built as a separate app on Grove, where links open entries as cards in one column — the river page, the card and its states, open / focus / close motion, the focus-following rail, mobile | the pressure test of customizable navigation (`APP_CUSTOMIZATION_SPEC` §6 in the docs repo) |
 
 ## Grove's foundation is the agent contract — and it's mostly invisible to you
 
