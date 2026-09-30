@@ -14,7 +14,7 @@
 // LITERAL's keys, not a regex over the whole file. That is the distinction R3-277c asks
 // for: reformatting `mdxComponents.ts` must not change the outcome.
 
-import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -213,7 +213,11 @@ function layoutRuleErrors(declaredLayouts, starters) {
       continue; // recorded; do not read a file that does not exist
     }
     if (entry.ships) {
-      const fm = starters.get(id).frontmatter;
+      const starter = starters.get(id);
+      // Unreadable/ambiguous starters are reported by the caller (the recorded
+      // verdict, never a stack) — the rule reads only what readStarters parsed.
+      if (starter.error) continue;
+      const fm = starter.frontmatter;
       if (fm.layoutRole !== entry.layoutRole) {
         ruleErrors.push(
           `  layouts.${id} — manifest says layoutRole:${entry.layoutRole}, the starter's frontmatter says ` +
@@ -228,7 +232,7 @@ function layoutRuleErrors(declaredLayouts, starters) {
   for (const [id, starter] of starters) {
     if (!declaredLayouts[id]) {
       ruleErrors.push(
-        `  ${starter.file} — a starter on disk with NO manifest entry. It renders (when ` +
+        `  ${starter.displayPath} — a starter on disk with NO manifest entry. It renders (when ` +
           `copied) but nothing declares it: a corpus checker cannot find it and an agent cannot discover it.`,
       );
     }
@@ -236,14 +240,31 @@ function layoutRuleErrors(declaredLayouts, starters) {
   return ruleErrors;
 }
 
-/** Read content/_layouts/ once, keeping the id → on-disk filename mapping. */
+/** Read content/_layouts/ once, keeping the id → on-disk filename mapping.
+ *  Per-file read failures are RECORDED on the entry (the verdict is the point —
+ *  never a raw stack), and a same-stem .md/.mdx pair records an ambiguous
+ *  entry: which frontmatter would be judged must never depend on readdir order. */
 function readStarters(layoutsDir) {
   const starters = new Map();
   if (!existsSync(layoutsDir)) return starters;
   for (const e of readdirSync(layoutsDir, { withFileTypes: true })) {
     if (e.isFile() && /\.mdx?$/.test(e.name)) {
       const file = join(layoutsDir, e.name);
-      starters.set(e.name.replace(/\.mdx?$/, ''), { file, frontmatter: frontmatterOf(file) });
+      const id = e.name.replace(/\.mdx?$/, '');
+      const displayPath = `content/_layouts/${e.name}`;
+      if (starters.has(id)) {
+        starters.set(id, {
+          displayPath: `${starters.get(id).displayPath} + ${displayPath}`,
+          error: `ambiguous starter id '${id}' — both ${starters.get(id).displayPath} and ${displayPath} exist`,
+          ambiguous: true,
+        });
+        continue;
+      }
+      try {
+        starters.set(id, { displayPath, frontmatter: frontmatterOf(file) });
+      } catch (err) {
+        starters.set(id, { displayPath, error: err.code ?? err.message });
+      }
     }
   }
   return starters;
@@ -251,6 +272,11 @@ function readStarters(layoutsDir) {
 
 const declaredLayouts = manifest.layouts ?? {};
 const starters = readStarters(LAYOUTS_DIR);
+for (const [id, starter] of starters) {
+  if (starter.error) {
+    errors.push(`  ${starter.displayPath} — ${starter.error}.`);
+  }
+}
 errors.push(...layoutRuleErrors(declaredLayouts, starters));
 
 // Collection shapes ride on engine components; a declared component that is not in the
@@ -337,6 +363,30 @@ const selfTest = () => {
     try {
       const errors = layoutRuleErrors({ note: { ships: true, layoutRole: 'article' } }, readStarters(dir));
       return errors.length === 1 && errors[0].includes('"page"') && errors[0].includes('layouts.note');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }]);
+  cases.push(['an unreadable starter is recorded, never a stack (the EACCES trigger)', () => {
+    const dir = plantCorpus({ 'sealed.mdx': '---\nlayoutRole: page\n---\n' });
+    try {
+      chmodSync(join(dir, 'sealed.mdx'), 0o000);
+      const starters = readStarters(dir);
+      const entry = starters.get('sealed');
+      return entry && entry.error !== undefined && entry.frontmatter === undefined;
+    } finally {
+      chmodSync(join(dir, 'sealed.mdx'), 0o644);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }]);
+  cases.push(['a same-stem .md + .mdx pair records an ambiguous verdict (never readdir roulette)', () => {
+    const dir = plantCorpus({
+      'twin.md': '---\nlayoutRole: page\n---\n',
+      'twin.mdx': '---\nlayoutRole: page\n---\n',
+    });
+    try {
+      const entry = readStarters(dir).get('twin');
+      return entry && /ambiguous starter id 'twin'/.test(entry.error ?? '') && entry.error.includes('.md') && entry.error.includes('.mdx');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
