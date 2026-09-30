@@ -230,6 +230,9 @@ function layoutRuleErrors(declaredLayouts, starters) {
     }
   }
   for (const [id, starter] of starters) {
+    // An unreadable/ambiguous starter already has its recorded verdict — and
+    // the orphan verdict cannot claim an unreadable file 'renders'.
+    if (starter.error) continue;
     if (!declaredLayouts[id]) {
       ruleErrors.push(
         `  ${starter.displayPath} — a starter on disk with NO manifest entry. It renders (when ` +
