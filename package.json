@@ -1,6 +1,6 @@
 {
   "name": "@immediately-run/grove",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "main": "src/main.tsx",
   "immediately.run": {
@@ -28,7 +28,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "preview": "vite preview",
-    "verify": "npm run check:llms && npm run check:engine-api:selftest && npm run check:engine-api && npm run check:manifest && npm run check:deps && npm run check:published && npm run check:theme-contrast && npm run check:theme-token-only && npm run lint && npm run build && npm run test",
+    "verify": "npm run check:llms && npm run check:engine-api:selftest && npm run check:engine-api && npm run check:manifest && npm run check:deps && npm run check:published && npm run check:theme-contrast && npm run check:theme-token-only && npm run lint && npm run build && npm run test && npm run check:lock-version",
     "check:theme-contrast": "node scripts/check-theme-contrast.mjs --self-test && node scripts/check-theme-contrast.mjs",
     "check:theme-token-only": "node scripts/check-theme-token-only.mjs --self-test && node scripts/check-theme-token-only.mjs",
     "check:manifest": "node scripts/check-manifest.mjs --self-test && node scripts/check-manifest.mjs",
@@ -37,7 +37,8 @@
     "check:engine-api": "node scripts/check-engine-api.mjs",
     "check:engine-api:selftest": "node scripts/check-engine-api.mjs --self-test",
     "gen:llms": "node scripts/gen-llms.mjs",
-    "check:llms": "node scripts/gen-llms.mjs --check"
+    "check:llms": "node scripts/gen-llms.mjs --check",
+    "check:lock-version": "node scripts/check-lock-version.mjs --self-test && node scripts/check-lock-version.mjs"
   },
   "dependencies": {
     "@immediately-run/mdx-plugins": "0.7.1",
