@@ -28,6 +28,7 @@ import { navQuery, plainLabel } from './lib/queries';
 import type { NavRecord } from './lib/queries';
 import { layoutChainForKey, resolveNavMode, resolvePageLayout } from './lib/layout';
 import { folderIndexKey } from './lib/directory';
+import { EntryContext } from './hooks/useEntryKey';
 import { resolvePalette, resolvePolarity, type Polarity } from './lib/themeSelection';
 import { preferredPolarity } from './data/themes';
 import { useDirectoryListing } from './hooks/useDirectoryListing';
@@ -486,7 +487,11 @@ export default function GroveWiki({
             </div>
           ) : null}
           <div className="grove-shell" data-nav={frameNone ? undefined : navMode}>
-            {failure ? <BootMessage>{failure}</BootMessage> : pending ? <BootMessage /> : renderLayers(chain, useDefault, safe)}
+            {/* R3-871: the entry context — everything inside (the entry body and its
+                layout chain) resolves relative links against this entry, not the URL. */}
+            <EntryContext.Provider value={{ entryKey }}>
+              {failure ? <BootMessage>{failure}</BootMessage> : pending ? <BootMessage /> : renderLayers(chain, useDefault, safe)}
+            </EntryContext.Provider>
           </div>
         </div>
 

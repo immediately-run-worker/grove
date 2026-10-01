@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback, useContext } from 'react';
+import { useCallback } from 'react';
 import { Link, useMetadataQuery } from '@immediately-run/sdk';
-import { TinkerableContext } from '@immediately-run/sdk/TinkerableContext';
-import { hrefKeyCandidates, hrefTargetKey, isContentEntry, keyToHref, linkKind, sandboxPathToKey, splitFragment } from '../lib/content';
+import { hrefKeyCandidates, hrefTargetKey, isContentEntry, keyToHref, linkKind, splitFragment } from '../lib/content';
 import { isFolderKey } from '../lib/directory';
 import { queryPaths } from '../lib/wiki';
+import { useEntryKey } from '../hooks/useEntryKey';
 import Icon from './Icon';
 
 interface Props {
@@ -19,8 +19,8 @@ interface Props {
 // glance. Those are the ONLY two shapes: an in-app href that resolves to nothing renders
 // broken, never as a bare `<a>` (see `linkKind` — R3-252).
 export default function WikiLink({ href = '', children, ...rest }: Props) {
-  const ctx = useContext(TinkerableContext) as any;
-  const currentKey = sandboxPathToKey(ctx?.navigationState?.sandboxPath || '/');
+  // R3-871: the entry this link renders inside, not whatever the URL says.
+  const currentKey = useEntryKey();
 
   // Resolve existence against the whole in-memory index (so a missing target is
   // *definitively* broken, not a load-time flash).

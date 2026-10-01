@@ -2,9 +2,10 @@
 // `cover:`/`img src`" into the fs path the SDK's `MountImage` reads.
 //
 // The distinction this module exists for: a body image resolves against the entry
-// CURRENTLY BEING RENDERED (`navigationState.sandboxPath` — `AssetImage`), while a
-// cover resolves against its OWNING entry — the entry the card/row/tile is ABOUT,
-// which under dispatch is usually a DIFFERENT base. Getting this wrong is not a bug
+// currently being rendered (the entry context's key via useEntryKey — AssetImage;
+// the routed key only as the no-provider fallback), while a
+// cover resolves against its owning entry — the entry the card/row/tile is about,
+// which under dispatch is usually a different base. Getting this wrong is not a bug
 // in `AssetImage`; it is the second half of design-pass gap 7: a `<DocList>` card or
 // `<Timeline>` row showing another entry's picture resolved against the wrong base
 // by construction.

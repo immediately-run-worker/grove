@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import fs from 'fs';
 import { Link, useFileMetadata, useMetadataQuery } from '@immediately-run/sdk';
-import { TinkerableContext } from '@immediately-run/sdk/TinkerableContext';
-import { isContentEntry, keyToFsPath, keyToHref, sandboxPathToKey } from '../lib/content';
+import { isContentEntry, keyToFsPath, keyToHref } from '../lib/content';
+import { useEntryKey } from '../hooks/useEntryKey';
 import { backlinkSnippet, bodyLinksTo, crumb, queryPaths } from '../lib/wiki';
 import InlineProse from './InlineProse';
 
@@ -29,8 +29,7 @@ function Row({ hit }: { hit: Hit }) {
 // `<Backlinks/>` — the signature wiki affordance: who links here. Reads sibling
 // entry bodies off the fs and scans for a link to the current entry.
 export default function Backlinks() {
-  const ctx = useContext(TinkerableContext) as any;
-  const currentKey = sandboxPathToKey(ctx?.navigationState?.sandboxPath || '/');
+  const currentKey = useEntryKey();
 
   const allKeys = useCallback(
     (fm: Record<string, any>) => Object.keys(fm).filter(isContentEntry),

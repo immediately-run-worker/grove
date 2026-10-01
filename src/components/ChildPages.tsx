@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback, useContext } from 'react';
+import { useCallback } from 'react';
 import { Link, useMetadataQuery } from '@immediately-run/sdk';
-import { TinkerableContext } from '@immediately-run/sdk/TinkerableContext';
-import { contentDir, isContentEntry, keyToHref, sandboxPathToKey } from '../lib/content';
+import { contentDir, isContentEntry, keyToHref } from '../lib/content';
+import { useEntryKey } from '../hooks/useEntryKey';
 import { namespaceOf, queryPaths } from '../lib/wiki';
 
 // `<ChildPages/>` — the entries that live under the current entry's namespace, as
 // a compact nested list (e.g. everything in `handbook/` from the handbook index).
 export default function ChildPages() {
-  const ctx = useContext(TinkerableContext) as any;
-  const currentKey = sandboxPathToKey(ctx?.navigationState?.sandboxPath || '/');
+  const currentKey = useEntryKey();
   const rel = currentKey.replace(contentDir(), '').replace(/\.mdx?$/, '');
   // The folder this entry indexes: its own slug if it's a section index, else its namespace.
   const scope = rel.replace(/\/?(index|home)$/, '');

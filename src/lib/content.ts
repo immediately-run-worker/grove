@@ -286,8 +286,3 @@ export function sandboxPathToKey(sandboxPath: string): string {
   // HOME rather than becoming a key that reads some other file.
   return p.startsWith(contentDir()) ? p : homeKey();
 }
-
-/** A sandboxPath → the absolute fs base for resolving relative assets. */
-export function toFsPath(sandboxPath: string): string {
-  return keyToFsPath(sandboxPathToKey(sandboxPath));
-}

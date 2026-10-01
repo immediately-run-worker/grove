@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useContext } from 'react';
 import { Link, useAllMetadata } from '@immediately-run/sdk';
-import { TinkerableContext } from '@immediately-run/sdk/TinkerableContext';
-import { sandboxPathToKey } from '../lib/content';
+
+import { useEntryKey } from '../hooks/useEntryKey';
 import {
   buildDirectoryRows,
   columnValue,
@@ -111,12 +110,13 @@ function Row({ row, cols }: { row: DirRow; cols: DirColumn[] }) {
  * folder route rendering the stock table would be a half-override nobody could see.
  */
 export default function DirectoryList({ path, title, columns, sort = 'name', hidden }: Props) {
-  const ctx = useContext(TinkerableContext) as any;
-  const routeKey = sandboxPathToKey(ctx?.navigationState?.sandboxPath || '/');
-  // The route key is a FILE when it names an entry; a listing anchored at an entry means
+  const entryKey = useEntryKey();
+  // The entry this listing renders inside (an entry-context key, so an included
+  // fragment or a layout anchors where it renders, not where the URL points).
+  // It is a FILE when it names an entry; a listing anchored at an entry means
   // "the folder that entry lives in", which is what an author writing `<DirectoryList/>`
   // inside a page means by "here".
-  const fromDir = /\.mdx?$/.test(routeKey) ? routeKey.slice(0, routeKey.lastIndexOf('/')) : routeKey;
+  const fromDir = /\.mdx?$/.test(entryKey) ? entryKey.slice(0, entryKey.lastIndexOf('/')) : entryKey;
   const dirKey = resolveDirKey(path, fromDir);
 
   const listing = useDirectoryListing(dirKey);
