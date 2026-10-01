@@ -19,7 +19,7 @@ interface Props {
 // glance. Those are the ONLY two shapes: an in-app href that resolves to nothing renders
 // broken, never as a bare `<a>` (see `linkKind` — R3-252).
 export default function WikiLink({ href = '', children, ...rest }: Props) {
-  // R3-871: the entry this link renders INSIDE, not whatever the URL says.
+  // R3-871: the entry this link renders inside, not whatever the URL says.
   const currentKey = useEntryKey();
 
   // Resolve existence against the whole in-memory index (so a missing target is

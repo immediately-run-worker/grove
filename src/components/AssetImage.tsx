@@ -7,7 +7,7 @@ import { useEntryKey } from '../hooks/useEntryKey';
 
 // MDX `img` override: display a mount-relative image by reading its bytes off the
 // sandbox fs (the opaque-origin iframe can't fetch a relative path). Resolves the
-// src relative to the entry currently being rendered — the ENTRY CONTEXT's entry,
+// src relative to the entry currently being rendered — the entry context's entry,
 // not the URL (R3-871: inside an included fragment or a layout, the URL names the
 // wrong base) — then hands the file to the SDK's `MountImage`, which owns the
 // read → object URL → revoke lifecycle we used to hand-roll here.

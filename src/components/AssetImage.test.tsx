@@ -48,7 +48,7 @@ describe('AssetImage — the base is the entry context (R3-871)', () => {
     return () => resetContentRoot();
   });
 
-  it('a relative src inside a NON-ROUTED entry resolves against that entry\'s directory', async () => {
+  it('a relative src inside a non-routed entry resolves against that entry\'s directory', async () => {
     await render(host(<AssetImage src="posters/ada.png" alt="Ada" />, '/app/content/teams/engineering.mdx'));
     expect(readFile).toHaveBeenCalled();
     const relPath = (readFile.mock.calls[0] as unknown[])[0] as string;

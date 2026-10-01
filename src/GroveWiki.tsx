@@ -488,7 +488,7 @@ export default function GroveWiki({
           ) : null}
           <div className="grove-shell" data-nav={frameNone ? undefined : navMode}>
             {/* R3-871: the entry context — everything inside (the entry body and its
-                layout chain) resolves relative links against THIS entry, not the URL. */}
+                layout chain) resolves relative links against this entry, not the URL. */}
             <EntryContext.Provider value={{ entryKey }}>
               {failure ? <BootMessage>{failure}</BootMessage> : pending ? <BootMessage /> : renderLayers(chain, useDefault, safe)}
             </EntryContext.Provider>

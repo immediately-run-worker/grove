@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// R3-871 — WikiLink resolves against the entry it renders INSIDE, not the URL.
+// R3-871 — WikiLink resolves against the entry it renders inside, not the URL.
 // The URL routes to content/home.mdx while an EntryContext provider says this
 // subtree renders content/teams/engineering.mdx: a relative link must resolve
 // from engineering's directory, and "self" must be judged against engineering.
@@ -48,7 +48,7 @@ describe('WikiLink — the entry context decides the base (R3-871)', () => {
     return () => resetContentRoot();
   });
 
-  it('a relative link inside a NON-ROUTED entry resolves against that entry', async () => {
+  it('a relative link inside a non-routed entry resolves against that entry', async () => {
     // the URL routes home; the subtree renders engineering (teams/engineering.mdx).
     const el = await render(
       host(

@@ -36,3 +36,11 @@ describe('entryKeyOr — the one fallback rule (R3-871)', () => {
     expect(entryKeyOr(null, '/files/content/a/b.mdx')).toBe('/app/content/a/b.mdx');
   });
 });
+
+describe('entryKeyOr — a provider that says nothing', () => {
+  it('an empty-string entryKey is not a key: it falls back to the routed key', () => {
+    expect(entryKeyOr({ entryKey: '' }, '/files/content/handbook/onboarding.mdx')).toBe(
+      sandboxPathToKey('/files/content/handbook/onboarding.mdx'),
+    );
+  });
+});
