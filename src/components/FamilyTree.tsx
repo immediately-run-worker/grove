@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useContext } from 'react';
 import { useMetadataQuery } from '@immediately-run/sdk';
 import type { Metadata } from '@immediately-run/sdk';
-import { TinkerableContext } from '@immediately-run/sdk/TinkerableContext';
-import { sandboxPathToKey } from '../lib/content';
+
+import { useEntryKey } from '../hooks/useEntryKey';
 import { familyTreeQuery } from '../lib/queries';
 import type { FamilyNodeRecord } from '../lib/queries';
 
@@ -20,8 +19,7 @@ interface Node {
 // literal: group hubs joined by hairline edges to their members. Genealogy
 // (`parent`/`house`) and org charts (`team`/`manager`) share the same rendering.
 export default function FamilyTree() {
-  const ctx = useContext(TinkerableContext) as any;
-  const currentKey = sandboxPathToKey(ctx?.navigationState?.sandboxPath || '/');
+  const currentKey = useEntryKey();
 
   // Records, not tab-encoded paths (R3-276a).
   const q = useMetadataQuery<Metadata, FamilyNodeRecord>(familyTreeQuery);

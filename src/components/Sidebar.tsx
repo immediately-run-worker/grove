@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useContext, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useMetadataQuery } from '@immediately-run/sdk';
 import type { Metadata } from '@immediately-run/sdk';
-import { TinkerableContext } from '@immediately-run/sdk/TinkerableContext';
-import { contentDir, keyToHref, sandboxPathToKey } from '../lib/content';
+import { contentDir, keyToHref } from '../lib/content';
+import { useEntryKey } from '../hooks/useEntryKey';
 import { sidebarQuery } from '../lib/queries';
 import { plainLabel } from '../lib/queries';
 import InlineProse from './InlineProse';
@@ -141,8 +140,7 @@ function Branch({
 // `.grove-sidebar` — the wiki shell's left rail: a namespace tree + author-defined
 // `ui/sidebar` sections (a header + a link into the tagged entry).
 export default function Sidebar() {
-  const ctx = useContext(TinkerableContext) as any;
-  const currentKey = sandboxPathToKey(ctx?.navigationState?.sandboxPath || '/');
+  const currentKey = useEntryKey();
 
   // Records, not tab-encoded paths (R3-276a).
   const q = useMetadataQuery<Metadata, SidebarRecord>(sidebarQuery);
