@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // R3-871 — the entry context's actual behaviour, over the real key grammar.
-// The context key wins when a provider is present; the ROUTED key (real
+// The context key wins when a provider is present; the routed key (real
 // sandboxPathToKey) otherwise; and the component-level case — a relative link
 // inside a non-routed entry resolving against that entry — is driven in
 // WikiLink.test.tsx.
@@ -15,7 +15,7 @@ describe('entryKeyOr — the one fallback rule (R3-871)', () => {
     );
   });
 
-  it('falls back to the ROUTED key when the context is null (no provider)', () => {
+  it('falls back to the routed key when the context is null (no provider)', () => {
     expect(entryKeyOr(null, '/files/content/handbook/onboarding.mdx')).toBe(
       sandboxPathToKey('/files/content/handbook/onboarding.mdx'),
     );

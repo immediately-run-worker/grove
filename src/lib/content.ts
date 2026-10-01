@@ -286,5 +286,3 @@ export function sandboxPathToKey(sandboxPath: string): string {
   // HOME rather than becoming a key that reads some other file.
   return p.startsWith(contentDir()) ? p : homeKey();
 }
-
-

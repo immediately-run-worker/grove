@@ -62,7 +62,7 @@ describe('WikiLink — the entry context decides the base (R3-871)', () => {
     expect(link.getAttribute('href')).toContain('people/ada-lovelace.mdx');
   });
 
-  it('the same relative link with NO provider resolves against the routed entry (home)', async () => {
+  it('the same relative link with no provider resolves against the routed entry (home)', async () => {
     // From home/, ../people/ada-lovelace.mdx lands outside the corpus → broken.
     // This is the default-preserving seam: same input, different base, by design.
     const el = await render(host(<WikiLink href="../people/ada-lovelace.mdx">Ada</WikiLink>));
@@ -70,7 +70,7 @@ describe('WikiLink — the entry context decides the base (R3-871)', () => {
     expect(link.getAttribute('data-state')).toBe('broken');
   });
 
-  it('a link to the context entry\'s OWN entry is self — judged against the entry, not the URL', async () => {
+  it('a link to the context entry\'s own entry is self — judged against the entry, not the URL', async () => {
     const el = await render(
       host(
         <WikiLink href="engineering.mdx">this very page</WikiLink>,

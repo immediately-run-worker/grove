@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// R3-871 — a relative asset src resolves against the ENTRY CONTEXT's entry
+// R3-871 — a relative asset src resolves against the entry context's entry
 // directory, not the URL. The URL routes home while the provider says the
 // subtree renders teams/engineering.mdx: the mount-relative path handed to
 // MountImage must start from engineering's directory.
@@ -11,7 +11,7 @@ import { TinkerableContext } from '@immediately-run/sdk/TinkerableContext';
 import { resetContentRoot, setContentRoot } from '../lib/contentRoot';
 
 // The fs slice MountImage reads; the assertion target is the relPath it is
-// HANDED, so the double only needs to serve bytes.
+// handed, so the double only needs to serve bytes.
 const readFile = vi.fn(async (relPath: string): Promise<Uint8Array> => {
     void relPath;
     return new Uint8Array([1]);

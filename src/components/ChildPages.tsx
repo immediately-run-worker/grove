@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback, } from 'react';
+import { useCallback } from 'react';
 import { Link, useMetadataQuery } from '@immediately-run/sdk';
 import { contentDir, isContentEntry, keyToHref } from '../lib/content';
 import { useEntryKey } from '../hooks/useEntryKey';
