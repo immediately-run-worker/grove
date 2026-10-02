@@ -5,6 +5,9 @@ import { isContentEntry, keyToHref, slugToKey } from '../lib/content';
 import InlineProse from './InlineProse';
 import { queryPaths } from '../lib/wiki';
 import EntryImage from './EntryImage';
+import { useEntryKey } from '../hooks/useEntryKey';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 
 interface Props {
   shape?: 'feed' | 'grid';
@@ -29,9 +32,11 @@ function tagsOf(meta: any): string[] {
 // One entry as a feed row — reads its own frontmatter so the hook count is stable.
 function Row({ path }: { path: string }) {
   const meta = useFileMetadata(path) as any;
+  const from = useEntryKey();
+  const follow = useFollowLink();
   if (!meta) return <div className="gdl-row"><div className="sk sk-line" style={{ width: '50%' }} /></div>;
   return (
-    <Link href={keyToHref(path)} className="gdl-row">
+    <Link href={keyToHref(path)} className="gdl-row" onClick={followLinkOnClick(follow, { key: path, href: keyToHref(path), from })}>
       <div>
         <div className="gdl-row__t"><InlineProse text={meta.title || path} trimPeriod /></div>
         {meta.description && <div className="gdl-row__d"><InlineProse text={meta.description} /></div>}
@@ -52,9 +57,11 @@ function Row({ path }: { path: string }) {
 // unreadable. Degrade, never break.
 function CardTile({ path }: { path: string }) {
   const meta = useFileMetadata(path) as any;
+  const from = useEntryKey();
+  const follow = useFollowLink();
   if (!meta) return <div className="gdl-card"><div className="gdl-card__pic" /></div>;
   return (
-    <Link href={keyToHref(path)} className="gdl-card">
+    <Link href={keyToHref(path)} className="gdl-card" onClick={followLinkOnClick(follow, { key: path, href: keyToHref(path), from })}>
       <div className="gdl-card__pic">
         <EntryImage entryPath={path} src={meta.cover} alt="" className="gdl-card__cover" degrade={<span className="gdl-card__lattice" />} />
       </div>

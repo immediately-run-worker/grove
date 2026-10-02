@@ -1,6 +1,9 @@
 import { Link } from '@immediately-run/sdk';
 import { useShell, EDIT_REFUSED_NOTICE } from '../lib/shell';
 import { getContentRoot } from '../lib/contentRoot';
+import { homeKey } from '../lib/content';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import { useOverlayFocusDismiss } from '../hooks/useOverlayFocusDismiss';
 import { THEMES } from '../data/themes';
 import Icon from './Icon';
@@ -27,6 +30,7 @@ export default function GroveNav() {
     setSearchOpen,
     setDrawerOpen,
   } = useShell();
+  const follow = useFollowLink();
 
   const askGrove = () => {
     const el = (document.querySelector('.ga-foot input') || document.querySelector('.ga-line input')) as HTMLElement | null;
@@ -64,13 +68,18 @@ export default function GroveNav() {
       <button className="grove-hamburger icbtn" aria-label="Menu" onClick={() => setDrawerOpen(true)}>
         <Icon name="list" />
       </button>
-      <Link href="/" className="grove-brand">
+      <Link href="/" className="grove-brand" onClick={followLinkOnClick(follow, { key: homeKey(), href: '/', from: entryKey })}>
         <span className="tile" style={{ background: 'var(--grad)' }} />
         {siteTitle}
       </Link>
       <div className="grove-nav__links">
         {navItems.map((n) => (
-          <Link key={n.key} href={n.href} data-cur={n.key === entryKey ? '1' : '0'}>
+          <Link
+            key={n.key}
+            href={n.href}
+            data-cur={n.key === entryKey ? '1' : '0'}
+            onClick={followLinkOnClick(follow, { key: n.key, href: n.href, from: entryKey })}
+          >
             {n.label}
           </Link>
         ))}

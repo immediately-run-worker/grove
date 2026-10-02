@@ -42,7 +42,7 @@ const MANUAL_SCROLL_GRACE_MS = 2000;
  */
 export default function TableOfContents({ entryKey, title = 'On this page', className }: Props) {
   const heads = useHeadings(entryKey);
-  const cur = useActiveHeading(heads);
+  const cur = useActiveHeading(heads, entryKey);
   const listRef = useRef<HTMLElement | null>(null);
   const itemsRef = useRef(new Map<string, HTMLAnchorElement>());
   const manualUntilRef = useRef(0);

@@ -4,6 +4,8 @@ import type { Metadata } from '@immediately-run/sdk';
 import { keyToHref } from '../lib/content';
 import { crumb } from '../lib/wiki';
 import { useOverlayFocusDismiss } from '../hooks/useOverlayFocusDismiss';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import InlineProse from './InlineProse';
 import { matchesQuery, searchQuery, toSearchEntries } from '../lib/queries';
 import type { SearchRecord } from '../lib/queries';
@@ -75,6 +77,7 @@ export default function Search({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const follow = useFollowLink();
   const activeId = total > 0 ? `${listId}-opt-${sel}` : undefined;
 
   return (
@@ -125,7 +128,13 @@ export default function Search({ onClose }: { onClose: () => void }) {
                   id={`${listId}-opt-${i}`}
                   role="option"
                   aria-selected={sel === i}
-                  onClick={onClose}
+                  onClick={(e) => {
+                    // R3-872: the policy first (it preventDefaults plain clicks and
+                    // no-ops modified ones), then the overlay's own close — the
+                    // same order the bare onClick={onClose} had with no policy.
+                    followLinkOnClick(follow, { key: h.key, href: keyToHref(h.key) })(e);
+                    onClose();
+                  }}
                 >
                   <Icon name="file" />
                   <span className="t">

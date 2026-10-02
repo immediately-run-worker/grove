@@ -2,6 +2,8 @@
 import { Link, useAllMetadata } from '@immediately-run/sdk';
 
 import { useEntryKey } from '../hooks/useEntryKey';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import {
   buildDirectoryRows,
   columnValue,
@@ -66,6 +68,8 @@ function Cell({ row, col }: { row: DirRow; col: DirColumn }) {
 
 function Row({ row, cols }: { row: DirRow; cols: DirColumn[] }) {
   const label = rowLabel(row);
+  const from = useEntryKey();
+  const follow = useFollowLink();
   return (
     <tr data-kind={row.kind}>
       <td className="gdir__name">
@@ -78,7 +82,11 @@ function Row({ row, cols }: { row: DirRow; cols: DirColumn[] }) {
           </span>
           <span className="gdir__labels">
             {row.href ? (
-              <Link href={row.href} className="gdir__link">
+              <Link
+                href={row.href}
+                className="gdir__link"
+                onClick={followLinkOnClick(follow, { key: row.key, href: row.href, from })}
+              >
                 {label}
               </Link>
             ) : (

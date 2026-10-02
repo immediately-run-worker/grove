@@ -1,23 +1,36 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useFileMetadata } from '@immediately-run/sdk';
-import { useShell, EDIT_REFUSED_NOTICE } from '../lib/shell';
+import { EDIT_REFUSED_NOTICE } from '../lib/shell';
 import { crumb } from '../lib/wiki';
 import Icon from './Icon';
 import InlineProse from './InlineProse';
 
 // The entry's header block: breadcrumb, title (optional gradient), meta row
 // (date · reading time · tags) and the unobtrusive edit affordance. Rendered by
-// <PageView> at the top of every entry.
+// <EntryBody> at the top of every entry (R3-872) — on the stock page (inside
+// PageView inside the chain) and standalone, identically.
+export interface EntryHeaderAffordance {
+  busy: boolean;
+  refused: boolean;
+  openEditor: (entryKey: string) => void;
+  hint: string;
+}
+
 export default function EntryHeader({
   entryKey,
   writable,
   mins,
+  affordance,
 }: {
   entryKey: string;
   writable: boolean;
   mins: number;
+  /** The edit affordance's live state — R3-872: passed in (the shell's on the
+   *  stock page, self-derived standalone), never read off a context here, so the
+   *  header renders inside any entry composition. */
+  affordance: EntryHeaderAffordance;
 }) {
-  const { openEditor, editBusy, editRefused, editHint } = useShell();
+  const { openEditor, busy: editBusy, refused: editRefused, hint: editHint } = affordance;
   const meta = useFileMetadata(entryKey) as any;
   if (!meta) return null;
   const tags: string[] = Array.isArray(meta.tags) ? meta.tags.filter((t: string) => !t.startsWith('ui/')) : [];

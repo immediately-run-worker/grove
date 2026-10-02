@@ -1,9 +1,13 @@
 import { Link } from '@immediately-run/sdk';
 import { useOverlayFocusDismiss } from '../hooks/useOverlayFocusDismiss';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import Sidebar from './Sidebar';
 import Icon from './Icon';
 
 interface NavItem {
+  /** The corpus key (R3-872 — the navigation policy's target names it). */
+  key: string;
   href: string;
   label: string;
   cur: boolean;
@@ -23,6 +27,7 @@ export default function Drawer({
   onClose: () => void;
 }) {
   const dialogRef = useOverlayFocusDismiss(true, onClose);
+  const follow = useFollowLink();
   return (
     <div className="grove-drawer" onClick={onClose}>
       <div
@@ -44,7 +49,15 @@ export default function Drawer({
         {nav.length ? (
           <nav className="grove-drawer__nav">
             {nav.map((n) => (
-              <Link key={n.href} href={n.href} data-cur={n.cur ? '1' : '0'} onClick={onClose}>
+              <Link
+                key={n.href}
+                href={n.href}
+                data-cur={n.cur ? '1' : '0'}
+                onClick={(e) => {
+                  followLinkOnClick(follow, { key: n.key, href: n.href })(e);
+                  onClose();
+                }}
+              >
                 {n.label}
               </Link>
             ))}

@@ -5,6 +5,8 @@ import { hrefKeyCandidates, hrefTargetKey, isContentEntry, keyToHref, linkKind, 
 import { isFolderKey } from '../lib/directory';
 import { queryPaths } from '../lib/wiki';
 import { useEntryKey } from '../hooks/useEntryKey';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import Icon from './Icon';
 
 interface Props {
@@ -21,6 +23,8 @@ interface Props {
 export default function WikiLink({ href = '', children, ...rest }: Props) {
   // R3-871: the entry this link renders inside, not whatever the URL says.
   const currentKey = useEntryKey();
+  // R3-872: plain clicks ride the navigation policy; the href stays real.
+  const follow = useFollowLink();
 
   // Resolve existence against the whole in-memory index (so a missing target is
   // *definitively* broken, not a load-time flash).
@@ -45,7 +49,12 @@ export default function WikiLink({ href = '', children, ...rest }: Props) {
   const targetKey = candidates.find((k) => keys.includes(k)) ?? candidates[0] ?? null;
   // Route on the RESOLVED key, not the author's text: handing `<Link>` a relative href
   // would make it resolve against the outer page URL rather than the content tree.
-  const [, fragment] = splitFragment(href);
+  const [, fragmentRaw] = splitFragment(href);
+  // `fragmentRaw` keeps the '#' for the hrefs (they concatenate it); the policy
+  // target carries the bare id (the FollowLinkTarget shape and
+  // resolveFragmentTarget's convention agree — never '#' + id).
+  const fragment = fragmentRaw || '';
+  const policyFragment = fragmentRaw ? fragmentRaw.replace(/^#/, '') : undefined;
   const resolvedHref = targetKey ? keyToHref(targetKey) + fragment : href;
 
   // Only an href that MEANS to leave the document becomes a real `<a>` — see `linkKind`.
@@ -60,7 +69,13 @@ export default function WikiLink({ href = '', children, ...rest }: Props) {
     const dirKey = kind === 'content' ? hrefTargetKey(href, currentKey) : null;
     if (dirKey && loaded && isFolderKey(dirKey, keys)) {
       return (
-        <Link href={keyToHref(dirKey) + fragment} className="grove-wikilink" data-state="ok" {...rest}>
+        <Link
+          href={keyToHref(dirKey) + fragment}
+          className="grove-wikilink"
+          data-state="ok"
+          onClick={followLinkOnClick(follow, { key: dirKey, fragment: policyFragment, href: keyToHref(dirKey) + fragment, from: currentKey })}
+          {...rest}
+        >
           {children}
         </Link>
       );
@@ -105,7 +120,13 @@ export default function WikiLink({ href = '', children, ...rest }: Props) {
   }
 
   return (
-    <Link href={resolvedHref} className="grove-wikilink" data-state="ok" {...rest}>
+    <Link
+      href={resolvedHref}
+      className="grove-wikilink"
+      data-state="ok"
+      onClick={followLinkOnClick(follow, { key: targetKey, fragment: policyFragment, href: resolvedHref, from: currentKey })}
+      {...rest}
+    >
       {children}
     </Link>
   );

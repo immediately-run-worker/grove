@@ -3,6 +3,8 @@ import { Fragment } from 'react';
 import type { ComponentType } from 'react';
 import { Link, useMDXComponents } from '@immediately-run/sdk';
 import { useShell } from '../lib/shell';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import { keyToHref } from '../lib/content';
 import { dirCrumbs, dirKeyToPath } from '../lib/directory';
 import DirectoryList from './DirectoryList';
@@ -30,6 +32,7 @@ const NO_OVERRIDES = {};
  */
 export default function DirectoryView() {
   const { entryKey, siteTitle } = useShell();
+  const follow = useFollowLink();
   const components = useMDXComponents(NO_OVERRIDES) as Record<string, ComponentType<any> | undefined>;
   const List = components.DirectoryList ?? DirectoryList;
 
@@ -41,11 +44,11 @@ export default function DirectoryView() {
       <div className="gp-main">
         <header className="grove-entry-header">
           <nav className="crumb">
-            <Link href="/">{siteTitle}</Link>
+            <Link href="/" onClick={followLinkOnClick(follow, { key: crumbs[0]?.key ?? '/', href: '/', from: entryKey })}>{siteTitle}</Link>
             {crumbs.slice(0, -1).map((c) => (
               <Fragment key={c.key}>
                 <span aria-hidden="true">/</span>
-                <Link href={keyToHref(c.key)}>{c.label}</Link>
+                <Link href={keyToHref(c.key)} onClick={followLinkOnClick(follow, { key: c.key, href: keyToHref(c.key), from: entryKey })}>{c.label}</Link>
               </Fragment>
             ))}
           </nav>

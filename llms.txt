@@ -1,6 +1,6 @@
 # @immediately-run/grove — the viewer kit for directory-as-content wikis
 
-> The Grove viewer: a kit of React components, layouts and themes for building immediately.run wikis. Composable as a fork, a dispatch target, or a pinned library. (v0.1.11)
+> The Grove viewer: a kit of React components, layouts and themes for building immediately.run wikis. Composable as a fork, a dispatch target, or a pinned library. (v0.2.0)
 
 Grove is NOT a wiki engine: routing, MDX compilation, the frontmatter index, link
 spaces and heading anchors live in the sandbox + `@immediately-run/sdk`. What this
@@ -25,20 +25,28 @@ and the defaults. Three composition modes (PLATFORM_LAYERING_SPEC §1.1):
 
 ## Composition entry (src/lib.ts)
 
+- `FollowLink`
+- `FollowLinkTarget`
 - `GROVE_MDX`
 - `GroveApp`
+- `GroveEntry`
 - `GroveShell`
 - `GroveShellContext`
 - `GroveWiki`
+- `Heading`
 - `ManifestComponent`
 - `ManifestOverrideError`
 - `NavItem`
+- `NavigationPolicyContext`
 - `OutletContext`
 - `SAFE_MDX`
 - `VIEWER_MANIFEST`
 - `ViewerManifest`
 - `composeComponents`
 - `contentDir`
+- `defaultFollowLink`
+- `followLinkOnClick`
+- `fragmentOf`
 - `getContentRoot`
 - `homeKey`
 - `isContentEntry`
@@ -51,8 +59,12 @@ and the defaults. Three composition modes (PLATFORM_LAYERING_SPEC §1.1):
 - `overridableNames`
 - `queryPaths`
 - `readingTime`
+- `resolveFragmentTarget`
 - `sandboxPathToKey`
 - `stripFrontmatter`
+- `useEntryKey`
+- `useFollowLink`
+- `useHeadings`
 - `useShell`
 
 ## Component vocabulary — the override contract (viewer.manifest.json)

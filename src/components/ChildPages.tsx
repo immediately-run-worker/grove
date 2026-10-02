@@ -3,6 +3,8 @@ import { useCallback } from 'react';
 import { Link, useMetadataQuery } from '@immediately-run/sdk';
 import { contentDir, isContentEntry, keyToHref } from '../lib/content';
 import { useEntryKey } from '../hooks/useEntryKey';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import { namespaceOf, queryPaths } from '../lib/wiki';
 
 // `<ChildPages/>` — the entries that live under the current entry's namespace, as
@@ -25,12 +27,13 @@ export default function ChildPages() {
   );
   const q = useMetadataQuery(queryFn);
   const paths: string[] = queryPaths(q);
+  const follow = useFollowLink();
 
   if (!paths.length) return null;
   return (
     <div className="grove-doclist" data-shape="feed">
       {paths.map((p) => (
-        <Link key={p} href={keyToHref(p)} className="gdl-row">
+        <Link key={p} href={keyToHref(p)} className="gdl-row" onClick={followLinkOnClick(follow, { key: p, href: keyToHref(p), from: currentKey })}>
           <div className="gdl-row__t">{p.replace(contentDir(), '').replace(/\.mdx?$/, '').split('/').pop()}</div>
         </Link>
       ))}

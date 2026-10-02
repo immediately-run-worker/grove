@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useContext, useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
 import fs from 'fs';
 import type { Metadata } from '@immediately-run/sdk';
 import {
-  Include,
   ScrollRestoration,
   useAllMetadata,
   useFileMetadata,
@@ -27,8 +25,9 @@ import { queryPaths, queryRecords, readingTime, stripFrontmatter } from './lib/w
 import { navQuery, plainLabel } from './lib/queries';
 import type { NavRecord } from './lib/queries';
 import { layoutChainForKey, resolveNavMode, resolvePageLayout } from './lib/layout';
+import { resolveSafeRender } from './lib/renderMode';
 import { folderIndexKey } from './lib/directory';
-import { EntryContext } from './hooks/useEntryKey';
+import GroveEntry from './components/GroveEntry';
 import { resolvePalette, resolvePolarity, type Polarity } from './lib/themeSelection';
 import { preferredPolarity } from './data/themes';
 import { useDirectoryListing } from './hooks/useDirectoryListing';
@@ -36,24 +35,15 @@ import { useScrollReset } from './hooks/useScrollReset';
 import { useEditAffordance } from './hooks/useEditAffordance';
 import { getContentRoot, isDispatched } from './lib/contentRoot';
 import type { RejectedComponent } from './lib/corpusComponents';
-import { GroveShellContext, OutletContext } from './lib/shell';
+import { GroveShellContext } from './lib/shell';
 import type { GroveShell, NavItem } from './lib/shell';
-import PageView from './components/PageView';
-import SafeLayout from './components/SafeLayout';
-import DefaultLayout from './components/DefaultLayout';
 import Search from './components/Search';
 import Drawer from './components/Drawer';
 import GroveAgent from './components/GroveAgent';
 import ThemeAssets from './components/ThemeAssets';
 import ContentTheme from './components/ContentTheme';
-import BootMessage from './components/BootMessage';
 import { themeAssetsFor } from './data/themeFonts';
 import { useContentStylesheets } from './hooks/useContentStylesheets';
-import { criticalKeys } from './lib/criticalKeys';
-import { criticalFailure, entryPending } from './lib/entryGate';
-import { CorpusScanContext } from './lib/corpusScanContext';
-
-declare const module: any;
 
 function readPref(k: string): string | null {
   try {
@@ -81,33 +71,6 @@ function writePref(k: string, v: string): void {
 function bundleHref(bundlePath: string): string {
   const absolute = fromBundlePath(bundlePath, contentDir().replace(/\/+$/, ''));
   return absolute === null ? bundlePath : keyToHref(absolute);
-}
-
-// Build the nested render for a layout chain (outermost first). Each layer wraps
-// its `_layout.mdx` (or the built-in <DefaultLayout/>) in an OutletContext whose
-// value is the node one level inward — so `<Outlet/>` inside a layer renders the
-// next layer, and the innermost <Outlet/> renders the page (<PageView/>).
-//
-// `safe` picks the RENDERER for each layer, exactly as it does for entry bodies in
-// <PageView/> (R3-263). Before this, every layer went through <Include> whatever the wiki
-// declared — so an interpreter-mode wiki still EXECUTED author JavaScript out of its
-// `_layout.mdx`, and the non-executable guarantee had a hole in the shell rather than in
-// the entries. It is also what makes the chain work at all under dispatch: <Include>
-// evaluates an app-source module, which a layout resident in a content mount is not.
-function renderLayers(chain: string[], useDefault: boolean, safe: boolean): ReactNode {
-  let node: ReactNode = <PageView />;
-  if (useDefault) {
-    return <OutletContext.Provider value={node}><DefaultLayout /></OutletContext.Provider>;
-  }
-  for (let i = chain.length - 1; i >= 0; i--) {
-    const inner = node;
-    node = (
-      <OutletContext.Provider value={inner} key={chain[i]}>
-        {safe ? <SafeLayout layoutKey={chain[i]} /> : <Include filename={chain[i]} baseModule={module} />}
-      </OutletContext.Provider>
-    );
-  }
-  return node;
 }
 
 /**
@@ -258,7 +221,7 @@ export default function GroveWiki({
   // one document, the non-executable proof page, whose whole point is planted code that
   // must NOT execute: on the compiled path that page doesn't just look wrong, it runs
   // (R3-252). A document that is only correct as data says so itself.
-  const safe: boolean = homeMeta?.render === 'safe' || meta?.render === 'safe';
+  const safe: boolean = resolveSafeRender(homeMeta, meta);
   const showRails = layout === 'doc' && !meta?.view;
 
 
@@ -290,14 +253,9 @@ export default function GroveWiki({
   // that decide how THIS entry renders — itself, home, its layouts, its `frame:` — are
   // read ahead of the rest, and the body waits for them: an unread row reads as
   // `render` unset, which is the executing path. The chrome around it stays mounted.
-  const scanGate = useContext(CorpusScanContext);
-  const critical = criticalKeys(entryKey, allMeta, scanGate.readFailure);
-  const criticalSig = critical.join('|');
-  useEffect(() => {
-    scanGate.prioritize(criticalSig.split('|'));
-  }, [scanGate, criticalSig]);
-  const pending = entryPending(critical, scanGate.isSettled, stylesheets.status);
-  const failure = criticalFailure(critical, scanGate.readFailure);
+  // R3-872: the entry gate (prioritize/pending/failure) and the safe derivation
+  // moved into GroveEntry's chain frame — GroveWiki keeps only what the chrome
+  // reads (navMode's root-layout lookup needs the chain's outermost key).
   const chain: string[] = layoutChainForKey(entryKey, allMeta);
   const frameNone = meta?.frame === 'none' || meta?.frame === false;
 
@@ -306,8 +264,6 @@ export default function GroveWiki({
   // same value through the shell). Undeclared or unknown → 'side', the arrangement
   // Grove has always shipped — never an unstyled page.
   const navMode = resolveNavMode(chain.length ? (allMeta[chain[0]!] as Record<string, unknown>) : undefined);
-  const useDefault = chain.length === 0 && !frameNone;
-
   // Every navigation starts at the top of the entry, except one aimed at a section. The
   // ref goes on `.device__scroll` below — the only thing on the page that scrolls.
   const scrollRef = useScrollReset(entryKey, hash);
@@ -373,6 +329,7 @@ export default function GroveWiki({
     missing,
     suggestion,
     directory,
+    stylesheetsStatus: stylesheets.status,
   };
 
   // The bundle scope handed to CONTENT (R3-174; MDX_FROM_MOUNT_SPEC §2, §7 1a).
@@ -487,11 +444,10 @@ export default function GroveWiki({
             </div>
           ) : null}
           <div className="grove-shell" data-nav={frameNone ? undefined : navMode}>
-            {/* R3-871: the entry context — everything inside (the entry body and its
-                layout chain) resolves relative links against this entry, not the URL. */}
-            <EntryContext.Provider value={{ entryKey }}>
-              {failure ? <BootMessage>{failure}</BootMessage> : pending ? <BootMessage /> : renderLayers(chain, useDefault, safe)}
-            </EntryContext.Provider>
+            {/* R3-872: the entry region is GroveEntry — the chain, the gate and the
+                entry context (R3-871) live inside it, so a shell composing entries
+                directly renders the same thing (APP_CUSTOMIZATION §4.1). */}
+            <GroveEntry entryKey={entryKey} frame={frameNone ? 'none' : 'chain'} />
           </div>
         </div>
 
@@ -499,7 +455,7 @@ export default function GroveWiki({
         {drawerOpen ? (
           <Drawer
             siteTitle={siteTitle}
-            nav={navItems.map((n) => ({ href: n.href, label: n.label, cur: n.key === entryKey }))}
+            nav={navItems.map((n) => ({ key: n.key, href: n.href, label: n.label, cur: n.key === entryKey }))}
             onClose={() => setDrawerOpen(false)}
           />
         ) : null}

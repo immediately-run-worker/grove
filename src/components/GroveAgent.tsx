@@ -48,7 +48,7 @@ export default function GroveAgent({
   const catalog = useCatalog();
   const index = useAllMetadata();
   const headings = useHeadings(entryKey);
-  const activeHeading = useActiveHeading(headings);
+  const activeHeading = useActiveHeading(headings, entryKey);
   const { openEditor, editRefused } = useShell();
   const [open, setOpen] = useState(false);
   const [detent, setDetent] = useState<'half' | 'full'>('half');
