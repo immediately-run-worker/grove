@@ -22,8 +22,10 @@ const B = '/app/content/specs/b.mdx';
  *  (both paths carry the marker since R3-872, and the safe path's marker wraps
  *  the body inside .grove-prose, as EntryBody renders it). */
 function plantTwoBodies() {
+  // A carries one ID-LESS heading (the kernel assigns none sometimes) — B's scan
+  // must never write an id onto it (the side effect is scoped, not just the read).
   document.body.innerHTML = `
-    <div class="grove-prose"><div data-entry="${A}"><h2 id="sec-1">A one</h2><h2 id="sec-2">A two</h2></div></div>
+    <div class="grove-prose"><div data-entry="${A}"><h2 id="sec-1">A one</h2><h2>A two (no id)</h2></div></div>
     <div class="grove-prose"><div data-entry="${B}"><h2 id="sec-1">B one</h2><h3 id="sec-2-1">B two-one</h3></div></div>
   `;
 }
@@ -45,8 +47,9 @@ describe('useHeadings — entry-scoped (R3-872)', () => {
       root.render(<Probe entryKey={B} seen={(h) => (latest = h)} />);
     });
     expect(latest.map((h) => h.id)).toEqual(['sec-1', 'sec-2-1']);
-    // and the OTHER entry's are not touched (the scan's id-assignment side effect
-    // is scoped too — A's headings carry no kernel id and must stay unwritten)
+    // the OTHER entry's id-less heading stays id-less — the scan's id-assignment
+    // side effect is scoped, not just the read
+    expect(document.querySelector(`[data-entry="${A}"] h2:nth-of-type(2)`)?.id ?? '').toBe('');
     await act(async () => root.unmount());
     container.remove();
   });
