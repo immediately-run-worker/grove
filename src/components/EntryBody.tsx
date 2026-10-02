@@ -16,6 +16,7 @@ import { keyToInclude, homeKey } from '../lib/content';
 import { resolvePageLayout } from '../lib/layout';
 import { readingTime, stripFrontmatter } from '../lib/wiki';
 import { keyToFsPath } from '../lib/content';
+import { resolveSafeRender } from '../lib/renderMode';
 import { useEditAffordance } from '../hooks/useEditAffordance';
 import fs from 'fs';
 import EntryHeader from './EntryHeader';
@@ -26,10 +27,14 @@ import Backlinks from './Backlinks';
 
 declare const module: any;
 
-/** The reading-time minutes for one entry — read the body once per entry. */
-function useReadingTimeMins(entryKey: string): number {
+/** The reading-time minutes for one entry — read the body once per entry.
+ *  `enabled` gates the read (hooks may not be conditional): the stock page's shell
+ *  computes `mins` once already, and a second read per navigation is the
+ *  double-read this flag exists to prevent (review round 1). */
+function useReadingTimeMins(entryKey: string, enabled: boolean): number {
   const [mins, setMins] = useState(0);
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMins(0);
@@ -42,7 +47,7 @@ function useReadingTimeMins(entryKey: string): number {
     return () => {
       active = false;
     };
-  }, [entryKey]);
+  }, [entryKey, enabled]);
   return mins;
 }
 
@@ -55,9 +60,9 @@ export default function EntryBody({ entryKey }: { entryKey: string }) {
   const includePath = sh?.includePath ?? keyToInclude(entryKey);
   const layout = sh?.layout ?? resolvePageLayout(meta);
   const showRails = sh?.showRails ?? (layout === 'doc' && !meta?.view);
-  const safe = sh?.safe ?? (homeMeta?.render === 'safe' || meta?.render === 'safe');
+  const safe = sh?.safe ?? resolveSafeRender(homeMeta, meta);
   const vw = sh?.vw ?? 'desktop';
-  const localMins = useReadingTimeMins(entryKey);
+  const localMins = useReadingTimeMins(entryKey, !sh); // the shell computes it on the stock page
   const mins = sh?.mins ?? localMins;
 
   return (

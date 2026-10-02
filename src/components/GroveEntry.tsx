@@ -20,6 +20,7 @@ import { criticalKeys } from '../lib/criticalKeys';
 import { criticalFailure, entryPending } from '../lib/entryGate';
 import { CorpusScanContext } from '../lib/corpusScanContext';
 import { homeKey } from '../lib/content';
+import { resolveSafeRender } from '../lib/renderMode';
 import BootMessage from './BootMessage';
 import DefaultLayout from './DefaultLayout';
 import SafeLayout from './SafeLayout';
@@ -62,9 +63,10 @@ function EntryFrame({ entryKey }: { entryKey: string }) {
   const meta = useFileMetadata(entryKey) as any;
   const homeMeta = useFileMetadata(homeKey()) as any;
   const allMeta = useAllMetadata() as Record<string, Record<string, unknown>>;
-  // Interpreter mode (TRUST_MODES §5 / R3-213): the wiki-wide home declaration OR
-  // this entry's own — the same precedence the stock page has always applied.
-  const safe: boolean = homeMeta?.render === 'safe' || meta?.render === 'safe';
+  // Interpreter mode (TRUST_MODES §5 / R3-213) — the decision lives in ONE
+  // module (lib/renderMode.ts): the chain renderer, the body renderer and the
+  // shell's `safe` field must never disagree.
+  const safe: boolean = resolveSafeRender(homeMeta, meta);
   const chain: string[] = layoutChainForKey(entryKey, allMeta);
   const frameNone = meta?.frame === 'none' || meta?.frame === false;
   const useDefault = chain.length === 0 && !frameNone;

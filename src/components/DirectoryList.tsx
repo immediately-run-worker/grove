@@ -85,7 +85,7 @@ function Row({ row, cols }: { row: DirRow; cols: DirColumn[] }) {
               <Link
                 href={row.href}
                 className="gdir__link"
-                onClick={followLinkOnClick(follow, { key: row.key ?? row.href, href: row.href, from })}
+                onClick={followLinkOnClick(follow, { key: row.key, href: row.href, from })}
               >
                 {label}
               </Link>

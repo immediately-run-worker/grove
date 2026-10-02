@@ -25,6 +25,7 @@ import { queryPaths, queryRecords, readingTime, stripFrontmatter } from './lib/w
 import { navQuery, plainLabel } from './lib/queries';
 import type { NavRecord } from './lib/queries';
 import { layoutChainForKey, resolveNavMode, resolvePageLayout } from './lib/layout';
+import { resolveSafeRender } from './lib/renderMode';
 import { folderIndexKey } from './lib/directory';
 import GroveEntry from './components/GroveEntry';
 import { resolvePalette, resolvePolarity, type Polarity } from './lib/themeSelection';
@@ -220,7 +221,7 @@ export default function GroveWiki({
   // one document, the non-executable proof page, whose whole point is planted code that
   // must NOT execute: on the compiled path that page doesn't just look wrong, it runs
   // (R3-252). A document that is only correct as data says so itself.
-  const safe: boolean = homeMeta?.render === 'safe' || meta?.render === 'safe';
+  const safe: boolean = resolveSafeRender(homeMeta, meta);
   const showRails = layout === 'doc' && !meta?.view;
 
 

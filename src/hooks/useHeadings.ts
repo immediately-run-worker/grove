@@ -48,17 +48,36 @@ export function useHeadings(entryKey?: string): Heading[] {
     // The scan root: this entry's marked body when markers exist; the document only
     // when NO body is marked at all (the pre-marker world). A page with markers but
     // none for this key (the body is still compiling) scans nothing — the observer
-    // and the retry timers rescan as it lands.
+    // watches the DOCUMENT until this entry's marker lands, then re-scopes (a
+    // late-committing entry's ToC must not stay empty for the mount's lifetime).
+    // NOTE: the marker sits INSIDE `.grove-prose` (both render paths), so the
+    // scoped query runs over the marker's own subtree — searching the marker FOR
+    // '.grove-prose' would find nothing (review round 1, G-CUST-2 regression).
+    const markedRoot = (): HTMLElement | null =>
+      entryKey === undefined
+        ? null
+        : Array.from(document.querySelectorAll<HTMLElement>('[data-entry]')).find(
+            (n) => n.getAttribute('data-entry') === entryKey,
+          ) ?? null;
+    const anyMarked = () => document.querySelectorAll('[data-entry]').length > 0;
     const root = (): ParentNode | null => {
-      const marked = Array.from(document.querySelectorAll<HTMLElement>('[data-entry]'));
-      if (marked.length === 0) return document;
+      const marked = markedRoot();
+      if (marked) return marked;
       if (entryKey === undefined) return document;
-      return marked.find((n) => n.getAttribute('data-entry') === entryKey) ?? null;
+      return anyMarked() ? null : document;
     };
     const scan = () => {
       const r = root();
-      const prose = r?.querySelector('.grove-prose') ?? (r === document ? document.querySelector('.grove-prose') : null);
-      const nodes = prose ? Array.from(prose.querySelectorAll('h2, h3')) : [];
+      // Scoped: the marker's subtree holds the entry's headings. Unscoped (no
+      // markers anywhere): the document's `.grove-prose`, as before.
+      const nodes = !r
+        ? []
+        : r === document
+          ? (() => {
+              const prose = document.querySelector('.grove-prose');
+              return prose ? Array.from(prose.querySelectorAll('h2, h3')) : [];
+            })()
+          : Array.from(r.querySelectorAll('h2, h3'));
       const found: Heading[] = nodes.map((n) => {
         const text = headingText(n);
         // Prefer the kernel-emitted id (§15.5); `headingId` reproduces the same canon
@@ -74,18 +93,29 @@ export function useHeadings(entryKey?: string): Heading[] {
         prev.length === found.length && prev.every((h, i) => h.id === found[i].id) ? prev : found
       );
     };
+    // Observe the SCOPED root when it exists; while our marker is absent (the
+    // body still compiling), observe the DOCUMENT so the marker's arrival
+    // triggers the rescan that re-scopes — then move the observer onto the
+    // marker (a whole-document watch would re-scan on every mutation anywhere,
+    // the churn the identity guard exists to absorb).
+    let observing: ParentNode | null = null;
+    const obs = new MutationObserver(() => {
+      const wanted = root() ?? document;
+      if (wanted !== observing) {
+        obs.disconnect();
+        obs.observe(wanted, { childList: true, subtree: true });
+        observing = wanted;
+      }
+      scan();
+    });
+    observing = root() ?? document;
+    obs.observe(observing, { childList: true, subtree: true });
     scan();
-    // Observe the SCOPED root (not the first `.grove-prose` on the page — a
-    // multi-entry page has several) so a sibling entry's edits never re-scan us.
-    const scanRoot = root();
-    const prose = scanRoot === document ? document : scanRoot;
-    const obs = prose ? new MutationObserver(scan) : null;
-    if (prose && obs) obs.observe(prose, { childList: true, subtree: true });
     // `<Include>` resolves asynchronously, and the observer only fires if `.grove-prose`
     // already existed — these catch the window where it did not.
     const timers = [120, 300, 600].map((d) => setTimeout(scan, d));
     return () => {
-      obs?.disconnect();
+      obs.disconnect();
       timers.forEach(clearTimeout);
     };
   }, [entryKey]);
@@ -93,12 +123,21 @@ export function useHeadings(entryKey?: string): Heading[] {
   return heads;
 }
 
-/** Which heading the reader is currently in — scroll-spied off the document. */
-export function useActiveHeading(heads: Heading[]): string {
+/** Which heading the reader is currently in — scroll-spied. R3-872: scoped to the
+ *  entry's marked body when a key is given — duplicate section ids across entries on
+ *  one page are the norm (every spec numbers from 1), and `document.getElementById`
+ *  would return the FIRST entry's heading, spying on the wrong entry. */
+export function useActiveHeading(heads: Heading[], entryKey?: string): string {
   const [cur, setCur] = useState<string>('');
 
   useEffect(() => {
     if (!heads.length) return;
+    const scope: ParentNode =
+      entryKey === undefined
+        ? document
+        : Array.from(document.querySelectorAll<HTMLElement>('[data-entry]')).find(
+            (n) => n.getAttribute('data-entry') === entryKey,
+          ) ?? document;
     const obs = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting);
@@ -107,11 +146,12 @@ export function useActiveHeading(heads: Heading[]): string {
       { rootMargin: '-64px 0px -70% 0px', threshold: 0 }
     );
     heads.forEach((h) => {
-      const el = document.getElementById(h.id);
+      // find the element INSIDE the scope (a heading id is only unique per entry)
+      const el = scope === document ? document.getElementById(h.id) : scope.querySelector(`#${CSS.escape(h.id)}`);
       if (el) obs.observe(el);
     });
     return () => obs.disconnect();
-  }, [heads]);
+  }, [heads, entryKey]);
 
   return cur;
 }

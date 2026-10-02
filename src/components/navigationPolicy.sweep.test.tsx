@@ -119,6 +119,7 @@ const FIXTURES: Record<string, { props?: Record<string, unknown>; sandboxPath?: 
 };
 
 // ── Harness ──────────────────────────────────────────────────────────────────
+
 function Harness({ children, record, sandboxPath }: { children: ReactNode; record: (t: FollowLinkTarget) => void; sandboxPath?: string }) {
   return (
     <TinkerableContext.Provider
@@ -136,43 +137,65 @@ function Harness({ children, record, sandboxPath }: { children: ReactNode; recor
   );
 }
 
-async function renderAndClick(name: string, node: ReactNode): Promise<{ calls: FollowLinkTarget[]; prevented: boolean }> {
-  const calls: FollowLinkTarget[] = [];
-  const container = document.createElement('div');
-  document.body.appendChild(container);
-  const root: Root = createRoot(container);
+/** Render once and read the anchor hrefs on screen (each href re-rendered + clicked
+ *  on its own mount — overlay components unmount after their first click). */
+async function renderAndClickAll(
+  name: string,
+  build: () => ReactNode,
+): Promise<{ perHref: Array<{ href: string; calls: FollowLinkTarget[]; prevented: boolean }> }> {
+  // first pass: which hrefs does it render?
+  const probe = document.createElement('div');
+  document.body.appendChild(probe);
+  const probeRoot: Root = createRoot(probe);
   await act(async () => {
-    root.render(
-      <Harness
-        record={(t) => {
-          calls.push(t);
-        }}
-        sandboxPath={FIXTURES[name]?.sandboxPath}
-      >
-        {node}
-      </Harness>,
-    );
+    probeRoot.render(<Harness record={() => {}} sandboxPath={FIXTURES[name]?.sandboxPath}>{build()}</Harness>);
   });
   for (let i = 0; i < 8; i++) await act(async () => {});
-  const anchor = container.querySelector('a[href]');
-  expect(anchor, `${name} renders at least one link`).toBeTruthy();
-  let prevented = false;
-  const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
-  Object.defineProperty(event, 'defaultPrevented', { get: () => prevented });
+  const hrefs = [...new Set([...probe.querySelectorAll('a[href]')].map((a) => a.getAttribute('href')!))];
+  expect(hrefs.length, `${name} renders at least one link`).toBeGreaterThan(0);
   await act(async () => {
-    // dispatch through the real DOM path; the guard marks defaultPrevented
+    probeRoot.unmount();
+  });
+  probe.remove();
+
+  const perHref: Array<{ href: string; calls: FollowLinkTarget[]; prevented: boolean }> = [];
+  for (const href of hrefs) {
+    const calls: FollowLinkTarget[] = [];
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    await act(async () => {
+      root.render(
+        <Harness
+          record={(t) => {
+            calls.push(t);
+          }}
+          sandboxPath={FIXTURES[name]?.sandboxPath}
+        >
+          {build()}
+        </Harness>,
+      );
+    });
+    for (let i = 0; i < 8; i++) await act(async () => {});
+    const anchor = container.querySelector(`a[href="${href.replace(/"/g, '\\"')}"]`);
+    expect(anchor, `${name}: the ${href} link still renders`).toBeTruthy();
+    let prevented = false;
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
     const origPrevent = event.preventDefault.bind(event);
     event.preventDefault = () => {
       prevented = true;
       origPrevent();
     };
-    anchor!.dispatchEvent(event);
-  });
-  await act(async () => {
-    root.unmount();
-  });
-  container.remove();
-  return { calls, prevented };
+    await act(async () => {
+      anchor!.dispatchEvent(event);
+    });
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+    perHref.push({ href, calls, prevented });
+  }
+  return { perHref };
 }
 
 beforeEach(() => {
@@ -199,12 +222,29 @@ describe('G-CUST-3 — every entry link rides the navigation policy', () => {
   it.each(linkComponents)('%s: a plain click reaches the policy with a resolved target', async (name) => {
     const mod = await import(`./${name}`);
     const Component = mod.default;
-    const { calls, prevented } = await renderAndClick(name, <Component {...(FIXTURES[name]?.props ?? {})} />);
-    expect(calls.length, `${name}: a plain click reaches the policy`).toBeGreaterThan(0);
-    const t = calls[0];
-    expect(typeof t.href, 'the target carries the concrete href').toBe('string');
-    expect(t.href.length).toBeGreaterThan(0);
-    expect(typeof t.key, 'the target carries the resolved key').toBe('string');
-    expect(prevented, `${name}: the plain click prevents the browser default`).toBe(true);
+    const props = FIXTURES[name]?.props ?? {};
+    // EVERY anchor the component renders, each clicked on its own mount (an
+    // overlay's first click closes it) — the item's do-not carve-out is a second
+    // link navigating directly 'because it's chrome', and only probing the first
+    // anchor would miss exactly that.
+    const { perHref } = await renderAndClickAll(name, () => <Component {...props} />);
+    for (const { href, calls, prevented } of perHref) {
+      expect(calls.length, `${name}: the plain click on ${href} reaches the policy`).toBeGreaterThan(0);
+      const t = calls[0];
+      expect(typeof t.href, 'the target carries the concrete href').toBe('string');
+      expect(t.href.length).toBeGreaterThan(0);
+      // the DOM anchor carries the SDK's outer-URL resolution of the href the
+      // component passed; the policy receives the component-level one
+      expect(href === t.href || href.endsWith(t.href), `${name}: the DOM href ${href} resolves the policy's ${t.href}`).toBe(true);
+      expect(typeof t.key, 'the target carries the resolved key').toBe('string');
+      expect(t.key.length).toBeGreaterThan(0);
+      // §4.3's shape: fragment is absent or a bare id, never '#'-prefixed
+      if (t.fragment !== undefined) expect(t.fragment.startsWith('#'), `fragment carries no '#' (${t.fragment})`).toBe(false);
+      // `from` is the entry key when the link renders inside one (content
+      // components), absent for the chrome (nav/footer/drawer/sidebar render
+      // outside an entry) — the shape pinned, not the value guessed.
+      if (t.from !== undefined) expect(typeof t.from).toBe('string');
+      expect(prevented, `${name}: the plain click on ${href} prevents the browser default`).toBe(true);
+    }
   });
 });

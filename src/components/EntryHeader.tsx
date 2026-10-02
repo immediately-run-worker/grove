@@ -29,12 +29,7 @@ export default function EntryHeader({
    *  header renders inside any entry composition. */
   affordance: EntryHeaderAffordance;
 }) {
-  const { openEditor, editBusy, editRefused, editHint } = {
-    openEditor: affordance.openEditor,
-    editBusy: affordance.busy,
-    editRefused: affordance.refused,
-    editHint: affordance.hint,
-  };
+  const { openEditor, busy: editBusy, refused: editRefused, hint: editHint } = affordance;
   const meta = useFileMetadata(entryKey) as any;
   if (!meta) return null;
   const tags: string[] = Array.isArray(meta.tags) ? meta.tags.filter((t: string) => !t.startsWith('ui/')) : [];

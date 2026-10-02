@@ -24,9 +24,12 @@ export function fragmentOf(hash: string | undefined | null): string {
  * about. Returns null while the previous entry is still rendered, which is the signal to
  * wait rather than to scroll.
  *
- * Falls back to the whole document when no marked body is present — the compiled
- * (`<Include>`) path does not carry the marker, and scrolling imperfectly there is better
- * than not at all.
+ * R3-872: BOTH render paths carry the `data-entry` marker now (the compiled path's
+ * omission predates entry-scoped resolution) — the marker means "this region belongs to
+ * entry X", and a fragment not yet inside it is not-found, so the caller keeps waiting
+ * through the compile window (ScrollToFragment retries; claim-too-early has no path to
+ * fire). The document-wide fallback serves only content rendered with NO marked bodies
+ * at all (pre-marker content), never a multi-entry page.
  */
 export function resolveFragmentTarget(doc: Document, entryKey: string, frag: string): HTMLElement | null {
   if (!frag) return null;
@@ -37,9 +40,9 @@ export function resolveFragmentTarget(doc: Document, entryKey: string, frag: str
   // strings has no such failure mode, and there are only a handful of marked bodies.
   const marked = Array.from(doc.querySelectorAll<HTMLElement>('[data-entry]'));
   const scope: ParentNode | null = marked.find((n) => n.getAttribute('data-entry') === entryKey) ?? null;
-  // No marked body at all: the compiled (`<Include>`) path does not carry the marker, so
-  // fall back to the document. A marked body for a DIFFERENT entry means the previous
-  // document is still on screen — return null and wait, rather than scroll the wrong page.
+  // No marked body at all (content rendered outside the marked paths): fall back to
+  // the document. A marked body for a DIFFERENT entry means the previous document is
+  // still on screen — return null and wait, rather than scroll the wrong page.
   const root: ParentNode | null = scope ?? (marked.length === 0 ? doc : null);
   if (!root) return null;
   const byId = root.querySelector<HTMLElement>(`[id="${cssEscape(frag)}"]`);

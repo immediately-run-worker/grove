@@ -49,7 +49,10 @@ export default function WikiLink({ href = '', children, ...rest }: Props) {
   const targetKey = candidates.find((k) => keys.includes(k)) ?? candidates[0] ?? null;
   // Route on the RESOLVED key, not the author's text: handing `<Link>` a relative href
   // would make it resolve against the outer page URL rather than the content tree.
-  const [, fragment] = splitFragment(href);
+  const [, fragmentRaw] = splitFragment(href);
+  // The policy target carries the fragment WITHOUT the '#' (the spec's
+  // FollowLinkTarget shape and resolveFragmentTarget's convention agree).
+  const fragment = fragmentRaw ? fragmentRaw.replace(/^#/, '') : '';
   const resolvedHref = targetKey ? keyToHref(targetKey) + fragment : href;
 
   // Only an href that MEANS to leave the document becomes a real `<a>` — see `linkKind`.
