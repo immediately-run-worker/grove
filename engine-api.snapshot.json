@@ -1,5 +1,5 @@
 {
-  "version": "0.1.4",
+  "version": "0.1.11",
   "exports": [
     ".",
     "./app",
@@ -59,14 +59,19 @@
   "libExports": [
     "GROVE_MDX",
     "GroveApp",
+    "GroveEntry",
     "GroveShellContext",
     "GroveWiki",
     "ManifestOverrideError",
+    "NavigationPolicyContext",
     "OutletContext",
     "SAFE_MDX",
     "VIEWER_MANIFEST",
     "composeComponents",
     "contentDir",
+    "defaultFollowLink",
+    "followLinkOnClick",
+    "fragmentOf",
     "getContentRoot",
     "homeKey",
     "isContentEntry",
@@ -79,8 +84,12 @@
     "overridableNames",
     "queryPaths",
     "readingTime",
+    "resolveFragmentTarget",
     "sandboxPathToKey",
     "stripFrontmatter",
+    "useEntryKey",
+    "useFollowLink",
+    "useHeadings",
     "useShell"
   ]
 }
