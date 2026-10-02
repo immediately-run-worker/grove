@@ -86,3 +86,24 @@ describe('resolveFragmentTarget — the stale-document guard (R3-249)', () => {
     expect(resolveFragmentTarget(doc, INCOMING, '')).toBeNull();
   });
 });
+
+describe('G-CUST-4 — entry-scoped resolution on a multi-entry page (R3-872)', () => {
+  const FIRST = '/app/content/specs/A_SPEC.mdx';
+  const SECOND = '/app/content/specs/B_SPEC.mdx';
+
+  it('two marked bodies, both with #sec-4 (one per render path — both carry data-entry since R3-872): scoping to the second lands in the second', () => {
+    const doc = makeDoc([
+      { entry: FIRST, ids: ['sec-4'] },
+      { entry: SECOND, ids: ['sec-4'] },
+    ]);
+    const el = resolveFragmentTarget(doc, SECOND, 'sec-4') as unknown as { entry: string };
+    expect(el?.entry).toBe(SECOND);
+  });
+
+  it('the document-wide fallback fires only when NO body is marked at all (pre-marker content)', () => {
+    const doc = makeDoc([]);
+    // no marked bodies → the fallback is the whole document (today's compiled-path
+    // behavior for content that never renders the marked paths)
+    expect(resolveFragmentTarget(doc, FIRST, 'sec-4')).toBeNull(); // nothing anywhere
+  });
+});

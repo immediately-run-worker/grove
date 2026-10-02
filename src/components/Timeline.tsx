@@ -4,15 +4,20 @@ import { Link, useFileMetadata, useMetadataQuery } from '@immediately-run/sdk';
 import { isContentEntry, keyToHref } from '../lib/content';
 import InlineProse from './InlineProse';
 import { queryPaths } from '../lib/wiki';
+import { useEntryKey } from '../hooks/useEntryKey';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import EntryImage from './EntryImage';
 
 // One dated entry on the axis: mono date · node · card.
 function Row({ path }: { path: string }) {
   const m = useFileMetadata(path) as any;
+  const from = useEntryKey();
+  const follow = useFollowLink();
   if (!m) return null;
   const tags: string[] = Array.isArray(m.tags) ? m.tags.filter((t: string) => !t.startsWith('ui/')) : [];
   return (
-    <Link href={keyToHref(path)} className="gtl-row">
+    <Link href={keyToHref(path)} className="gtl-row" onClick={followLinkOnClick(follow, { key: path, href: keyToHref(path), from })}>
       <div className="gtl-date">{m.date}</div>
       <div className="gtl-node" />
       <div className="gtl-card">

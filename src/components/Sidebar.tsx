@@ -3,6 +3,8 @@ import { Link, useMetadataQuery } from '@immediately-run/sdk';
 import type { Metadata } from '@immediately-run/sdk';
 import { contentDir, keyToHref } from '../lib/content';
 import { useEntryKey } from '../hooks/useEntryKey';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import { sidebarQuery } from '../lib/queries';
 import { plainLabel } from '../lib/queries';
 import InlineProse from './InlineProse';
@@ -76,6 +78,7 @@ function Branch({
   const isFolder = childKeys.length > 0;
   const containsCurrent = !!currentKey && (node.key === currentKey || hasDescendant(node, currentKey));
   const [open, setOpen] = useState(depth < 1 || containsCurrent);
+  const follow = useFollowLink();
 
   if (!isFolder) {
     return (
@@ -88,6 +91,7 @@ function Branch({
         aria-level={depth + 1}
         aria-current={node.key === currentKey ? 'page' : undefined}
         tabIndex={node.key === stopRowId ? 0 : -1}
+        onClick={followLinkOnClick(follow, { key: node.key!, href: keyToHref(node.key!), from: currentKey })}
       >
         <Icon name="file" />
         <InlineProse text={node.title || node.name} trimPeriod />
@@ -141,6 +145,7 @@ function Branch({
 // `ui/sidebar` sections (a header + a link into the tagged entry).
 export default function Sidebar() {
   const currentKey = useEntryKey();
+  const follow = useFollowLink();
 
   // Records, not tab-encoded paths (R3-276a).
   const q = useMetadataQuery<Metadata, SidebarRecord>(sidebarQuery);
@@ -207,7 +212,12 @@ export default function Sidebar() {
         <div className="gs-block" key={s.key}>
           <div className="gs-block__h">{s.label}</div>
           <div className="gs-section__body">
-            <Link href={keyToHref(s.key)} className="grove-wikilink" data-state="ok">
+            <Link
+              href={keyToHref(s.key)}
+              className="grove-wikilink"
+              data-state="ok"
+              onClick={followLinkOnClick(follow, { key: s.key, href: keyToHref(s.key), from: currentKey })}
+            >
               Open
             </Link>
           </div>

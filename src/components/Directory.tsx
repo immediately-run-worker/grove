@@ -3,6 +3,9 @@ import { useCallback } from 'react';
 import { Link, useFileMetadata, useMetadataQuery } from '@immediately-run/sdk';
 import { contentDir, keyToHref } from '../lib/content';
 import { queryPaths } from '../lib/wiki';
+import { useEntryKey } from '../hooks/useEntryKey';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 
 interface Props {
   team?: string;
@@ -15,11 +18,13 @@ function isPerson(m: any): boolean {
 
 function Row({ path, compact }: { path: string; compact?: boolean }) {
   const m = useFileMetadata(path) as any;
+  const from = useEntryKey();
+  const follow = useFollowLink();
   if (!m) return null;
   return (
     <tr>
       <td style={{ fontWeight: 600 }}>
-        <Link href={keyToHref(path)}>{m.name}</Link>
+        <Link href={keyToHref(path)} onClick={followLinkOnClick(follow, { key: path, href: keyToHref(path), from })}>{m.name}</Link>
       </td>
       <td>{m.role}</td>
       {!compact && <td>{m.team}</td>}

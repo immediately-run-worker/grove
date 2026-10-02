@@ -67,6 +67,10 @@ export interface GroveShell {
    *  `checking` while the readdir is in flight — <PageView> must render neither the
    *  entry nor the 404 then, or a folder URL flashes "No entry at …" before healing. */
   directory: DirectoryListing;
+  /** R3-872 — the entry frame's gate input: the content stylesheets' read state.
+   *  Wiki-wide (the home entry's declaration), provided by the engine root;
+   *  standalone compositions default to 'ready' (no sheets declared). */
+  stylesheetsStatus?: 'loading' | 'ready';
 }
 
 /** The refusal sentence, ONE home (R6, R3-608): every surface that offers an edit

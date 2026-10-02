@@ -4,6 +4,8 @@ import fs from 'fs';
 import { Link, useFileMetadata, useMetadataQuery } from '@immediately-run/sdk';
 import { isContentEntry, keyToFsPath, keyToHref } from '../lib/content';
 import { useEntryKey } from '../hooks/useEntryKey';
+import { useFollowLink } from '../hooks/useFollowLink';
+import { followLinkOnClick } from '../lib/navigationPolicy';
 import { backlinkSnippet, bodyLinksTo, crumb, queryPaths } from '../lib/wiki';
 import InlineProse from './InlineProse';
 
@@ -15,8 +17,14 @@ interface Hit {
 // One linking entry: title + namespace crumb + the snippet around the link.
 function Row({ hit }: { hit: Hit }) {
   const meta = useFileMetadata(hit.key) as any;
+  const from = useEntryKey();
+  const follow = useFollowLink();
   return (
-    <Link href={keyToHref(hit.key)} className="grove-bl">
+    <Link
+      href={keyToHref(hit.key)}
+      className="grove-bl"
+      onClick={followLinkOnClick(follow, { key: hit.key, href: keyToHref(hit.key), from })}
+    >
       <div className="grove-bl__t">
         <InlineProse text={meta?.title || crumb(hit.key)} trimPeriod />
         <span className="crumb">/{crumb(hit.key)}</span>

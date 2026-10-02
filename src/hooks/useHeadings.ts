@@ -29,8 +29,15 @@ function headingText(node: Element): string {
 }
 
 /**
- * Scan `.grove-prose` for `h2`/`h3`, assigning the canonical id to any heading the kernel
- * did not emit one for, and re-scan as the prose mounts or swaps on navigation.
+ * Scan the entry's body for `h2`/`h3`, assigning the canonical id to any heading the
+ * kernel did not emit one for, and re-scan as the prose mounts or swaps on navigation.
+ *
+ * R3-872 (APP_CUSTOMIZATION §4.5): the scan is scoped to the ENTRY's marked body
+ * (`[data-entry="<entryKey>"]` — emitted on both render paths), never the whole
+ * document: on a multi-entry page the first `.grove-prose` is whichever entry mounted
+ * first, and its headings are the wrong entry's. Unscoped (no key, or no marked body
+ * anywhere) falls back to the document — the pre-marker behavior, for content that
+ * never renders through the marked paths.
  */
 export function useHeadings(entryKey?: string): Heading[] {
   const [heads, setHeads] = useState<Heading[]>([]);
@@ -38,8 +45,19 @@ export function useHeadings(entryKey?: string): Heading[] {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHeads([]);
+    // The scan root: this entry's marked body when markers exist; the document only
+    // when NO body is marked at all (the pre-marker world). A page with markers but
+    // none for this key (the body is still compiling) scans nothing — the observer
+    // and the retry timers rescan as it lands.
+    const root = (): ParentNode | null => {
+      const marked = Array.from(document.querySelectorAll<HTMLElement>('[data-entry]'));
+      if (marked.length === 0) return document;
+      if (entryKey === undefined) return document;
+      return marked.find((n) => n.getAttribute('data-entry') === entryKey) ?? null;
+    };
     const scan = () => {
-      const prose = document.querySelector('.grove-prose');
+      const r = root();
+      const prose = r?.querySelector('.grove-prose') ?? (r === document ? document.querySelector('.grove-prose') : null);
       const nodes = prose ? Array.from(prose.querySelectorAll('h2, h3')) : [];
       const found: Heading[] = nodes.map((n) => {
         const text = headingText(n);
@@ -57,7 +75,10 @@ export function useHeadings(entryKey?: string): Heading[] {
       );
     };
     scan();
-    const prose = document.querySelector('.grove-prose');
+    // Observe the SCOPED root (not the first `.grove-prose` on the page — a
+    // multi-entry page has several) so a sibling entry's edits never re-scan us.
+    const scanRoot = root();
+    const prose = scanRoot === document ? document : scanRoot;
     const obs = prose ? new MutationObserver(scan) : null;
     if (prose && obs) obs.observe(prose, { childList: true, subtree: true });
     // `<Include>` resolves asynchronously, and the observer only fires if `.grove-prose`

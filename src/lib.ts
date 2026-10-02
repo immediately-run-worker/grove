@@ -52,3 +52,21 @@ export {
 export { getContentRoot, isDispatched } from './lib/contentRoot';
 export { layoutChainForKey } from './lib/layout';
 export { queryPaths, readingTime, stripFrontmatter } from './lib/wiki';
+
+// The entry composition seam (R3-872, APP_CUSTOMIZATION_SPEC §4.1): render one entry
+// from a key — header + body + metadata + tags — framed by its layout chain or bare,
+// publishing the entry context either way.
+export { default as GroveEntry } from './components/GroveEntry';
+export { useEntryKey } from './hooks/useEntryKey';
+
+// The navigation policy (§4.3): every in-bundle entry link's plain click rides one
+// replaceable function; the href stays real for modifier/middle clicks.
+export { NavigationPolicyContext, defaultFollowLink, followLinkOnClick } from './lib/navigationPolicy';
+export type { FollowLink, FollowLinkTarget } from './lib/navigationPolicy';
+export { useFollowLink } from './hooks/useFollowLink';
+
+// The entry-scoped helpers (§4.5): fragment resolution and heading collection scoped
+// to one entry's marked body.
+export { fragmentOf, resolveFragmentTarget } from './lib/fragment';
+export { useHeadings } from './hooks/useHeadings';
+export type { Heading } from './hooks/useHeadings';
