@@ -50,9 +50,11 @@ export default function WikiLink({ href = '', children, ...rest }: Props) {
   // Route on the RESOLVED key, not the author's text: handing `<Link>` a relative href
   // would make it resolve against the outer page URL rather than the content tree.
   const [, fragmentRaw] = splitFragment(href);
-  // The policy target carries the fragment WITHOUT the '#' (the spec's
-  // FollowLinkTarget shape and resolveFragmentTarget's convention agree).
-  const fragment = fragmentRaw ? fragmentRaw.replace(/^#/, '') : '';
+  // `fragmentRaw` keeps the '#' for the hrefs (they concatenate it); the policy
+  // target carries the bare id (the FollowLinkTarget shape and
+  // resolveFragmentTarget's convention agree — never '#' + id).
+  const fragment = fragmentRaw || '';
+  const policyFragment = fragmentRaw ? fragmentRaw.replace(/^#/, '') : undefined;
   const resolvedHref = targetKey ? keyToHref(targetKey) + fragment : href;
 
   // Only an href that MEANS to leave the document becomes a real `<a>` — see `linkKind`.
@@ -71,7 +73,7 @@ export default function WikiLink({ href = '', children, ...rest }: Props) {
           href={keyToHref(dirKey) + fragment}
           className="grove-wikilink"
           data-state="ok"
-          onClick={followLinkOnClick(follow, { key: dirKey, fragment: fragment || undefined, href: keyToHref(dirKey) + fragment, from: currentKey })}
+          onClick={followLinkOnClick(follow, { key: dirKey, fragment: policyFragment, href: keyToHref(dirKey) + fragment, from: currentKey })}
           {...rest}
         >
           {children}
@@ -122,7 +124,7 @@ export default function WikiLink({ href = '', children, ...rest }: Props) {
       href={resolvedHref}
       className="grove-wikilink"
       data-state="ok"
-      onClick={followLinkOnClick(follow, { key: targetKey, fragment: fragment || undefined, href: resolvedHref, from: currentKey })}
+      onClick={followLinkOnClick(follow, { key: targetKey, fragment: policyFragment, href: resolvedHref, from: currentKey })}
       {...rest}
     >
       {children}

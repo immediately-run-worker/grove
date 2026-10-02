@@ -7,7 +7,8 @@ import InlineProse from './InlineProse';
 
 // The entry's header block: breadcrumb, title (optional gradient), meta row
 // (date · reading time · tags) and the unobtrusive edit affordance. Rendered by
-// <PageView> at the top of every entry.
+// <EntryBody> at the top of every entry (R3-872) — on the stock page (inside
+// PageView inside the chain) and standalone, identically.
 export interface EntryHeaderAffordance {
   busy: boolean;
   refused: boolean;

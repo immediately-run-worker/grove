@@ -107,7 +107,7 @@ const linkComponents = readdirSync(COMPONENTS_DIR)
 // Per-component minimal render context (props, and a sandboxPath when the
 // component's content depends on which entry it renders inside).
 const FIXTURES: Record<string, { props?: Record<string, unknown>; sandboxPath?: string }> = {
-  WikiLink: { props: { href: '/wiki/b.mdx', children: 'the other' } },
+  WikiLink: { props: { href: '/wiki/b.mdx#sec-4', children: 'the other' } },
   Search: { props: { onClose: () => {} } },
   Drawer: { props: { siteTitle: 'Fixture', nav: [{ key: OTHER, href: keyToHref(OTHER), label: 'Other', cur: false }], onClose: () => {} } },
   // ChildPages lists the current entry's INDEX siblings — the current entry must
@@ -151,7 +151,9 @@ async function renderAndClickAll(
     probeRoot.render(<Harness record={() => {}} sandboxPath={FIXTURES[name]?.sandboxPath}>{build()}</Harness>);
   });
   for (let i = 0; i < 8; i++) await act(async () => {});
-  const hrefs = [...new Set([...probe.querySelectorAll('a[href]')].map((a) => a.getAttribute('href')!))];
+  // Every anchor OCCURRENCE, not every distinct href (round 2 nit): a second
+  // same-href anchor reverted to direct navigation must fail too.
+  const hrefs = [...probe.querySelectorAll('a[href]')].map((a) => a.getAttribute('href')!);
   expect(hrefs.length, `${name} renders at least one link`).toBeGreaterThan(0);
   await act(async () => {
     probeRoot.unmount();
@@ -159,7 +161,9 @@ async function renderAndClickAll(
   probe.remove();
 
   const perHref: Array<{ href: string; calls: FollowLinkTarget[]; prevented: boolean }> = [];
-  for (const href of hrefs) {
+  for (let occurrence = 0; occurrence < hrefs.length; occurrence++) {
+    const href = hrefs[occurrence];
+    const ordinal = hrefs.slice(0, occurrence).filter((h) => h === href).length;
     const calls: FollowLinkTarget[] = [];
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -177,7 +181,7 @@ async function renderAndClickAll(
       );
     });
     for (let i = 0; i < 8; i++) await act(async () => {});
-    const anchor = container.querySelector(`a[href="${href.replace(/"/g, '\\"')}"]`);
+    const anchor = container.querySelectorAll(`a[href="${href.replace(/"/g, '\\"')}"]`)[ordinal];
     expect(anchor, `${name}: the ${href} link still renders`).toBeTruthy();
     let prevented = false;
     const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
@@ -244,6 +248,13 @@ describe('G-CUST-3 — every entry link rides the navigation policy', () => {
       // components), absent for the chrome (nav/footer/drawer/sidebar render
       // outside an entry) — the shape pinned, not the value guessed.
       if (t.from !== undefined) expect(typeof t.from).toBe('string');
+      // the WikiLink fixture is fragment-bearing: the rendered href KEEPS the
+      // '#sec-4' (round 2's regression — the '#' strip corrupted hrefs), and the
+      // policy's fragment is the bare id
+      if (name === 'WikiLink') {
+        expect(href).toContain('#sec-4');
+        expect(t.fragment).toBe('sec-4');
+      }
       expect(prevented, `${name}: the plain click on ${href} prevents the browser default`).toBe(true);
     }
   });
