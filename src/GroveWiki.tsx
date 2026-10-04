@@ -387,7 +387,7 @@ export default function GroveWiki({
         // chroot), so a dispatched corpus document's `$fs:/mnt/{hash}/…` cannot
         // name a federated mount materialised beside it — the app-level mount
         // point is not a corpus path — and the fork's `$fs:` stays
-        // mount-absolute. THIS field carries the same flag for the SDK's generic
+        // mount-absolute. This field carries the same flag for the SDK's generic
         // component consumers (WikiLink/MDXComponents) — consumed since the
         // 0.79.0 pin (R3-783): those components forward it to the shared
         // resolver, so the clamp is load-bearing on the generic path too.
