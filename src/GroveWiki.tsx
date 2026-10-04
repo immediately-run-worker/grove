@@ -373,8 +373,8 @@ export default function GroveWiki({
   return (
     // R3-277b: declare the enclosing bundle for the platform's link-space consumers
     // (the shared resolver's bundle-anchored absolute + `$fs:` handling read this).
-    // R3-482: the SDK pin (^0.72.0, #75) reads `bundleRoot` new-then-old, so the new
-    // spelling is stated alone — the deprecated `corpusRoot` stays in the type for
+    // R3-482: the SDK pin (since ^0.72.0, #75) reads `bundleRoot` new-then-old, so the
+    // new spelling is stated alone — the deprecated `corpusRoot` stays in the type for
     // older consumers (mdx-plugins' forever-compat) but no longer here.
     <LinkSpaceContext.Provider
       value={{
@@ -387,12 +387,10 @@ export default function GroveWiki({
         // chroot), so a dispatched corpus document's `$fs:/mnt/{hash}/…` cannot
         // name a federated mount materialised beside it — the app-level mount
         // point is not a corpus path — and the fork's `$fs:` stays
-        // mount-absolute. THIS field carries the same flag for the SDK's generic
-        // component consumers (WikiLink/MDXComponents): the pinned SDK 0.72.0
-        // does not forward it, so it is decided-but-not-consumed until a
-        // forwarding release is published and pinned — the booked follow-up,
-        // stated here rather than blurred (§8.3's dated note:
-        // built-but-not-in-force is a materially different state from done).
+        // mount-absolute. This field carries the same flag for the SDK's generic
+        // component consumers (WikiLink/MDXComponents) — consumed since the
+        // 0.79.0 pin (R3-783): those components forward it to the shared
+        // resolver, so the clamp is load-bearing on the generic path too.
         bundleChrooted: isDispatched(),
       }}
     >

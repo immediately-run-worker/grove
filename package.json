@@ -1,6 +1,6 @@
 {
   "name": "@immediately-run/grove",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "main": "src/main.tsx",
   "immediately.run": {
@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@immediately-run/mdx-plugins": "0.7.1",
-    "@immediately-run/sdk": "^0.72.0",
+    "@immediately-run/sdk": "^0.79.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
@@ -88,7 +88,7 @@
     "llms.txt"
   ],
   "peerDependencies": {
-    "@immediately-run/sdk": "^0.72.0",
+    "@immediately-run/sdk": "^0.79.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   }
