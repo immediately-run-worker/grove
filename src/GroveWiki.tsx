@@ -388,11 +388,9 @@ export default function GroveWiki({
         // name a federated mount materialised beside it — the app-level mount
         // point is not a corpus path — and the fork's `$fs:` stays
         // mount-absolute. THIS field carries the same flag for the SDK's generic
-        // component consumers (WikiLink/MDXComponents): the pinned SDK 0.72.0
-        // does not forward it, so it is decided-but-not-consumed until a
-        // forwarding release is published and pinned — the booked follow-up,
-        // stated here rather than blurred (§8.3's dated note:
-        // built-but-not-in-force is a materially different state from done).
+        // component consumers (WikiLink/MDXComponents) — CONSUMED since the
+        // 0.79.0 pin (R3-783): those components forward it to the shared
+        // resolver, so the clamp is load-bearing on the generic path too.
         bundleChrooted: isDispatched(),
       }}
     >
