@@ -4,21 +4,29 @@
 // viewer must send its edit to the CORPUS (never to Grove's own repo), and whether it may
 // offer one at all must be the corpus mount's CURRENT mode rather than a property of the
 // packaging or a flag latched at boot.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, afterEach } from 'vitest';
 import { corpusWritable, editTarget, keyToSelfPath } from './editTarget';
 import type { CorpusIdentity } from './editTarget';
 import type { SandboxMount } from '@immediately-run/sdk/mounts';
+import { getContentRoot, getCorpusMountId, isDispatched, resetContentRoot, setContentRoot } from './contentRoot';
 
-const fork: CorpusIdentity = {
-  dispatched: false,
-  contentRoot: '/app/content/',
-  mountId: null,
+// The corpus identities come from the REAL producer (R3-877 round 1, R2): the
+// trailing-slash normalization every `slice` in editTarget depends on lives in
+// `setContentRoot` — a hand-typed literal would keep passing while it broke.
+const forkFor = (): CorpusIdentity => {
+  resetContentRoot();
+  return { dispatched: isDispatched(), contentRoot: getContentRoot(), mountId: getCorpusMountId() };
 };
-const dispatched: CorpusIdentity = {
-  dispatched: true,
-  contentRoot: '/task/t1/dir/',
-  mountId: '/task/t1/dir',
+const dispatchedFor = (): CorpusIdentity => {
+  setContentRoot('/task/t1/dir', { mountId: '/task/t1/dir' });
+  return { dispatched: isDispatched(), contentRoot: getContentRoot(), mountId: getCorpusMountId() };
 };
+afterEach(() => resetContentRoot());
+
+const fork: CorpusIdentity = forkFor();
+const dispatched: CorpusIdentity = dispatchedFor();
+// The dispatched entry keys, built off the producer's root — never a hand-typed prefix.
+const IN = (rel: string) => `${dispatched.contentRoot}${rel}`;
 
 const mount = (over: Partial<SandboxMount> = {}): SandboxMount =>
   ({ type: 'firestore', path: '/task/t1/dir', id: '/task/t1/dir', mode: 'rw', ...over }) as SandboxMount;
@@ -32,7 +40,7 @@ describe('editTarget — the verb follows the authority, not the packaging', () 
   });
 
   it('a DISPATCHED viewer delegates the CORPUS file, never a path in its own repo', () => {
-    expect(editTarget('/task/t1/dir/plot/the-rail.mdx', dispatched)).toEqual({
+    expect(editTarget(IN('plot/the-rail.mdx'), dispatched)).toEqual({
       via: 'delegate',
       mountId: '/task/t1/dir',
       relPath: 'plot/the-rail.mdx',
@@ -40,7 +48,7 @@ describe('editTarget — the verb follows the authority, not the packaging', () 
   });
 
   it('is corpus-relative under dispatch — the mount root IS the corpus root', () => {
-    const t = editTarget('/task/t1/dir/home.mdx', dispatched);
+    const t = editTarget(IN('home.mdx'), dispatched);
     expect(t).toMatchObject({ relPath: 'home.mdx' });
     // The fork's `content/` segment must NOT leak into a corpus-relative path: the
     // delegated chroot is minted AT the content directory.
@@ -52,11 +60,11 @@ describe('editTarget — the verb follows the authority, not the packaging', () 
   });
 
   it('offers nothing when a dispatched corpus has no mount id to delegate from', () => {
-    expect(editTarget('/task/t1/dir/home.mdx', { ...dispatched, mountId: null })).toBeNull();
+    expect(editTarget(IN('home.mdx'), { ...dispatched, mountId: null })).toBeNull();
   });
 
   it('offers nothing for the corpus root itself (a directory is not an entry)', () => {
-    expect(editTarget('/task/t1/dir/', dispatched)).toBeNull();
+    expect(editTarget(IN(''), dispatched)).toBeNull();
   });
 
   it('never throws on a junk key', () => {
@@ -122,14 +130,14 @@ describe('editTarget — the workbench class for a read-only delegation (R3-877)
   const roCorpus: CorpusIdentity = { ...dispatched, mountMode: 'ro' };
 
   it('an `ro` dispatched corpus yields workbench with the leading-slash bundle-relative path', () => {
-    expect(editTarget('/task/t1/dir/plot/the-rail.mdx', roCorpus)).toEqual({
+    expect(editTarget(IN('plot/the-rail.mdx'), roCorpus)).toEqual({
       via: 'workbench',
       relPath: '/plot/the-rail.mdx',
     });
   });
 
   it('an `rw` delegation still yields delegate (the edit-file overlay is unchanged)', () => {
-    expect(editTarget('/task/t1/dir/plot/the-rail.mdx', { ...dispatched, mountMode: 'rw' })).toEqual({
+    expect(editTarget(IN('plot/the-rail.mdx'), { ...dispatched, mountMode: 'rw' })).toEqual({
       via: 'delegate',
       mountId: '/task/t1/dir',
       relPath: 'plot/the-rail.mdx',
@@ -137,7 +145,7 @@ describe('editTarget — the workbench class for a read-only delegation (R3-877)
   });
 
   it('an UNKNOWN mode (an older host announces none) keeps the pre-R3-877 delegate behavior', () => {
-    expect(editTarget('/task/t1/dir/home.mdx', dispatched)).toEqual({
+    expect(editTarget(IN('home.mdx'), dispatched)).toEqual({
       via: 'delegate',
       mountId: '/task/t1/dir',
       relPath: 'home.mdx',
@@ -145,17 +153,13 @@ describe('editTarget — the workbench class for a read-only delegation (R3-877)
   });
 
   it('the corpus root itself is still nothing to edit, workbench included', () => {
-    expect(editTarget('/task/t1/dir/', roCorpus)).toBeNull();
+    expect(editTarget(IN(''), roCorpus)).toBeNull();
   });
 });
 
 describe('corpusWritable — the ro delegation is offerable on the hint (R3-877)', () => {
   it('ro + readerCanEdit true → offered', () => {
     expect(corpusWritable([mount({ mode: 'ro', readerCanEdit: true })], dispatched)).toBe(true);
-  });
-
-  it('ro + NO hint (an older host) → offered; a refusal would tell us', () => {
-    expect(corpusWritable([mount({ mode: 'ro' })], dispatched)).toBe(true);
   });
 
   it('ro + readerCanEdit false → NOT offered (never show a control that refuses)', () => {

@@ -3,7 +3,7 @@
 // delegation: `requestEdit({ bundleFile })`, with the refusal contract pinned:
 // `read-only` HIDES the affordance until the next mount announcement, `cancelled`
 // stays silent, `forbidden` (and anything else) sets `refused`.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
@@ -20,12 +20,9 @@ vi.mock('@immediately-run/sdk', () => ({
   useMounts: () => useMountsMock(),
 }));
 
-// The corpus identity, as the dispatched opener's boot latches it.
-vi.mock('../lib/contentRoot', () => ({
-  isDispatched: () => true,
-  getContentRoot: () => '/task/t1/dir/',
-  getCorpusMountId: () => '/task/t1/dir',
-}));
+// The corpus identity comes from the REAL contentRoot module, driven through its
+// own producer (R3-877 round 1, R2) — never a hand-typed shape.
+import { getContentRoot, resetContentRoot, setContentRoot } from '../lib/contentRoot';
 
 import { useEditAffordance } from './useEditAffordance';
 
@@ -46,6 +43,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+  setContentRoot('/task/t1/dir', { mountId: '/task/t1/dir' });
   requestEditMock.mockReset().mockResolvedValue(undefined);
   invokeTaskMock.mockReset().mockResolvedValue(undefined);
   useMountsMock.mockReset().mockReturnValue([RO_MOUNT]);
@@ -57,7 +55,13 @@ beforeEach(() => {
 });
 
 const rerender = () => act(() => root.render(<Probe />));
-const open = async (key = '/task/t1/dir/plot/the-rail.mdx') => {
+
+afterEach(() => {
+  resetContentRoot();
+  act(() => root.unmount());
+  container.remove();
+});
+const open = async (key = `${getContentRoot()}plot/the-rail.mdx`) => {
   await act(async () => {
     latest!.openEditor(key);
     await Promise.resolve();

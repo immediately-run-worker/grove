@@ -7,9 +7,11 @@
 // was withheld entirely and the wiki became read-only for the one packaging where the
 // content is most obviously somebody's to edit.
 //
-// The decision is pure (`lib/editTarget`); this hook is the wiring: it reads the LIVE
-// mount list so a role downgrade hides the affordance on the next render rather than
-// producing `EROFS` on click, and it hands back one `openEditor(entryKey)` the chrome
+// The decision is pure (`lib/editTarget`); this hook is the wiring: it reads the live
+// mount list so a role downgrade reroutes the delivery on the next render (rw → the
+// `edit-file` overlay; ro → the workbench under the reader's authority, R3-877) rather
+// than producing `EROFS` on click — and a `readerCanEdit: false` hint or a `read-only`
+// refusal hides the offer — and it hands back one `openEditor(entryKey)` the chrome
 // calls without knowing which packaging it is in.
 import { useCallback, useMemo, useState } from 'react';
 import { capFile, invokeTask, requestEdit, useMounts } from '@immediately-run/sdk';
@@ -55,7 +57,7 @@ export function useEditAffordance(readOnly: boolean): EditAffordance {
     return { dispatched: isDispatched(), contentRoot: getContentRoot(), mountId, mountMode: mount?.mode ?? null };
   }, [mounts]);
 
-  // R3-877: a `read-only` refusal (the READER cannot edit the source) hides the
+  // R3-877: a `read-only` refusal (the reader cannot edit the source) hides the
   // affordance until the next mount announcement — the hint's re-announcement is
   // exactly what unlatches it. Reset on every mount-list change — the
   // render-adjusted-state pattern (not an effect, which would paint one frame
@@ -89,7 +91,7 @@ export function useEditAffordance(readOnly: boolean): EditAffordance {
         requestEdit({ path: target.path }).catch(refusedUnlessCancelled).finally(done);
         return;
       }
-      // Dispatch, READ-ONLY delegation: ask the WORKBENCH to open the entry's source
+      // Dispatch, read-only delegation: ask the workbench to open the entry's source
       // under the reader's authority (R3-876 / APP_CUSTOMIZATION §5a). Our chroot is
       // never upgraded and nothing is minted for us; the host needs a real gesture,
       // which this click is. `cancelled` stays silent; `read-only` hides the
