@@ -10,7 +10,7 @@ import type { CorpusIdentity } from './editTarget';
 import type { SandboxMount } from '@immediately-run/sdk/mounts';
 import { getContentRoot, getCorpusMountId, isDispatched, resetContentRoot, setContentRoot } from './contentRoot';
 
-// The corpus identities come from the REAL producer (R3-877 round 1, R2): the
+// The corpus identities come from the real producer (R3-877 round 1, R2): the
 // trailing-slash normalization every `slice` in editTarget depends on lives in
 // `setContentRoot` — a hand-typed literal would keep passing while it broke.
 const forkFor = (): CorpusIdentity => {
@@ -89,14 +89,14 @@ describe('corpusWritable — the mount decides, live', () => {
     expect(corpusWritable([mount()], dispatched)).toBe(true);
   });
 
-  it('a ro corpus with NO hint is still offerable (R3-877: the workbench class) — never EROFS, a refusal tells', () => {
+  it('a ro corpus with no hint is still offerable (R3-877: the workbench class) — never EROFS, a refusal tells', () => {
     // Pre-R3-877 this was `false` — an ro mount hid the affordance outright. The
-    // workbench class edits under the READER's authority, so OUR ro mount is the
+    // workbench class edits under the reader's authority, so our ro mount is the
     // normal case, not a refusal. An explicit `false` hint still hides it (below).
     expect(corpusWritable([mount({ mode: 'ro' })], dispatched)).toBe(true);
   });
 
-  it('follows a LIVE downgrade: re-announced ro flips the DELIVERY, and a false hint flips the OFFER', () => {
+  it('follows a live downgrade: re-announced ro flips the delivery, and a false hint flips the offer', () => {
     expect(corpusWritable([mount({ mode: 'rw' })], dispatched)).toBe(true);
     // ro with no hint: still offerable, now via the workbench (reader's authority).
     expect(corpusWritable([mount({ mode: 'ro' })], dispatched)).toBe(true);
@@ -121,7 +121,7 @@ describe('corpusWritable — the mount decides, live', () => {
   });
 });
 
-// R3-877 — the third outcome: an ro delegation edits via the WORKBENCH, under the
+// R3-877 — the third outcome: an ro delegation edits via the workbench, under the
 // reader's authority (`requestEdit({ bundleFile })`, R3-876). Order of preference:
 // self → delegate (rw) → workbench (ro).
 describe('editTarget — the workbench class for a read-only delegation (R3-877)', () => {
@@ -162,7 +162,7 @@ describe('corpusWritable — the ro delegation is offerable on the hint (R3-877)
     expect(corpusWritable([mount({ mode: 'ro', readerCanEdit: true })], dispatched)).toBe(true);
   });
 
-  it('ro + readerCanEdit false → NOT offered (never show a control that refuses)', () => {
+  it('ro + readerCanEdit false → not offered (never show a control that refuses)', () => {
     expect(corpusWritable([mount({ mode: 'ro', readerCanEdit: false })], dispatched)).toBe(false);
   });
 });

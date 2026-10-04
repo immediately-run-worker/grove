@@ -114,7 +114,7 @@ export function useEditAffordance(readOnly: boolean): EditAffordance {
       // Dispatch, writable delegation: attenuate the corpus delegation down to this
       // one file and hand it to the platform editor. Nothing new is minted — we
       // already hold the directory, and `edit-file` is one hop further along a chain
-      // §5.7.1 bounds at depth 4. The host resolves the cap against OUR grants, so
+      // §5.7.1 bounds at depth 4. The host resolves the cap against our grants, so
       // this can only ever narrow.
       invokeTask('edit-file', {
         file: capFile({ mountId: target.mountId, relPath: target.relPath }, { mode: 'rw' }),

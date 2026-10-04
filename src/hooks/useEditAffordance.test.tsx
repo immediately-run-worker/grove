@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // R3-877 — the workbench delivery of the edit affordance for a read-only opener
 // delegation: `requestEdit({ bundleFile })`, with the refusal contract pinned:
-// `read-only` HIDES the affordance until the next mount announcement, `cancelled`
+// `read-only` hides the affordance until the next mount announcement, `cancelled`
 // stays silent, `forbidden` (and anything else) sets `refused`.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, useEffect } from 'react';
@@ -20,7 +20,7 @@ vi.mock('@immediately-run/sdk', () => ({
   useMounts: () => useMountsMock(),
 }));
 
-// The corpus identity comes from the REAL contentRoot module, driven through its
+// The corpus identity comes from the real contentRoot module, driven through its
 // own producer (R3-877 round 1, R2) — never a hand-typed shape.
 import { getContentRoot, resetContentRoot, setContentRoot } from '../lib/contentRoot';
 
@@ -78,13 +78,13 @@ describe('useEditAffordance — the workbench delivery (R3-877)', () => {
     expect(latest!.refused).toBe(false);
   });
 
-  it('an ro delegation with `readerCanEdit: false` does NOT offer the control', () => {
+  it('an ro delegation with `readerCanEdit: false` does not offer the control', () => {
     useMountsMock.mockReturnValue([{ ...RO_MOUNT, readerCanEdit: false }]);
     rerender();
     expect(latest!.writable).toBe(false);
   });
 
-  it('a `read-only` refusal HIDES the affordance until the next mount announcement', async () => {
+  it('a `read-only` refusal hides the affordance until the next mount announcement', async () => {
     requestEditMock.mockRejectedValue(Object.assign(new Error('no'), { code: 'read-only' }));
     await open();
     expect(latest!.refused).toBe(false); // not a render-in-place refusal

@@ -20,8 +20,8 @@
 //
 // **The mount decides.** Writability is a property of the delegation's current mode, not
 // of how the app was loaded. That is why `corpusWritable` takes the live mount list rather
-// than the boot-time flag. Since R3-877 a role downgrade no longer HIDES the affordance —
-// it REROUTES the delivery: `rw` hands the file to the `edit-file` overlay, `ro` asks the
+// than the boot-time flag. Since R3-877 a role downgrade no longer hides the affordance —
+// it reroutes the delivery: `rw` hands the file to the `edit-file` overlay, `ro` asks the
 // workbench under the reader's authority (`requestEdit({ bundleFile })`). The offer hides
 // only when the host's `readerCanEdit` hint says the reader cannot edit, or a `read-only`
 // refusal proved it.
@@ -37,9 +37,9 @@ export type EditTarget =
   /** Dispatch, writable delegation: one file of the corpus, handed to the platform
    *  editor as a narrowed `edit-file` delegation (the overlay). */
   | { via: 'delegate'; mountId: string; relPath: string }
-  /** Dispatch, READ-ONLY delegation (an app-declared opener's chroot): ask the
-   *  workbench to open the entry's SOURCE in the main-pane editor under the
-   *  READER's authority — `requestEdit({ bundleFile })` (R3-876 / APP_CUSTOMIZATION
+  /** Dispatch, read-only delegation (an app-declared opener's chroot): ask the
+   *  workbench to open the entry's source in the main-pane editor under the
+   *  reader's authority — `requestEdit({ bundleFile })` (R3-876 / APP_CUSTOMIZATION
    *  §5a). The path is bundle-relative with a leading slash. */
   | { via: 'workbench'; relPath: string };
 
@@ -114,7 +114,7 @@ export function corpusWritable(
   if (!mount) return false;
   if (mount.mode !== 'ro') return true;
   // R3-877 (APP_CUSTOMIZATION §5a.5): an `ro` delegation can still offer the
-  // workbench edit — the READER's authority — gated on the host's advisory
+  // workbench edit — the reader's authority — gated on the host's advisory
   // `readerCanEdit` hint: offer when it is true, OR when the host sent no hint
   // (absent = unknown — the refusal would tell, and `read-only` hides it after).
   // Never offer on an explicit `false`.
