@@ -81,13 +81,19 @@ describe('corpusWritable — the mount decides, live', () => {
     expect(corpusWritable([mount()], dispatched)).toBe(true);
   });
 
-  it('a ro corpus is not writable, so the affordance is hidden rather than EROFS-ing', () => {
-    expect(corpusWritable([mount({ mode: 'ro' })], dispatched)).toBe(false);
+  it('a ro corpus with NO hint is still offerable (R3-877: the workbench class) — never EROFS, a refusal tells', () => {
+    // Pre-R3-877 this was `false` — an ro mount hid the affordance outright. The
+    // workbench class edits under the READER's authority, so OUR ro mount is the
+    // normal case, not a refusal. An explicit `false` hint still hides it (below).
+    expect(corpusWritable([mount({ mode: 'ro' })], dispatched)).toBe(true);
   });
 
-  it('follows a LIVE downgrade: the same mount re-announced ro flips the answer', () => {
+  it('follows a LIVE downgrade: re-announced ro flips the DELIVERY, and a false hint flips the OFFER', () => {
     expect(corpusWritable([mount({ mode: 'rw' })], dispatched)).toBe(true);
-    expect(corpusWritable([mount({ mode: 'ro' })], dispatched)).toBe(false);
+    // ro with no hint: still offerable, now via the workbench (reader's authority).
+    expect(corpusWritable([mount({ mode: 'ro' })], dispatched)).toBe(true);
+    // ro with the host saying the reader cannot edit: hidden.
+    expect(corpusWritable([mount({ mode: 'ro', readerCanEdit: false })], dispatched)).toBe(false);
   });
 
   it('a corpus mount that has vanished is not writable', () => {
@@ -104,5 +110,55 @@ describe('corpusWritable — the mount decides, live', () => {
 
   it('never reports writable when there is no mount id at all', () => {
     expect(corpusWritable([mount()], { ...dispatched, mountId: null })).toBe(false);
+  });
+});
+
+// R3-877 — the third outcome: an ro delegation edits via the WORKBENCH, under the
+// reader's authority (`requestEdit({ bundleFile })`, R3-876). Order of preference:
+// self → delegate (rw) → workbench (ro).
+describe('editTarget — the workbench class for a read-only delegation (R3-877)', () => {
+  // The corpus identity's contentRoot mirrors the real getContentRoot() shape: the
+  // delegated chroot root, trailing slash.
+  const roCorpus: CorpusIdentity = { ...dispatched, mountMode: 'ro' };
+
+  it('an `ro` dispatched corpus yields workbench with the leading-slash bundle-relative path', () => {
+    expect(editTarget('/task/t1/dir/plot/the-rail.mdx', roCorpus)).toEqual({
+      via: 'workbench',
+      relPath: '/plot/the-rail.mdx',
+    });
+  });
+
+  it('an `rw` delegation still yields delegate (the edit-file overlay is unchanged)', () => {
+    expect(editTarget('/task/t1/dir/plot/the-rail.mdx', { ...dispatched, mountMode: 'rw' })).toEqual({
+      via: 'delegate',
+      mountId: '/task/t1/dir',
+      relPath: 'plot/the-rail.mdx',
+    });
+  });
+
+  it('an UNKNOWN mode (an older host announces none) keeps the pre-R3-877 delegate behavior', () => {
+    expect(editTarget('/task/t1/dir/home.mdx', dispatched)).toEqual({
+      via: 'delegate',
+      mountId: '/task/t1/dir',
+      relPath: 'home.mdx',
+    });
+  });
+
+  it('the corpus root itself is still nothing to edit, workbench included', () => {
+    expect(editTarget('/task/t1/dir/', roCorpus)).toBeNull();
+  });
+});
+
+describe('corpusWritable — the ro delegation is offerable on the hint (R3-877)', () => {
+  it('ro + readerCanEdit true → offered', () => {
+    expect(corpusWritable([mount({ mode: 'ro', readerCanEdit: true })], dispatched)).toBe(true);
+  });
+
+  it('ro + NO hint (an older host) → offered; a refusal would tell us', () => {
+    expect(corpusWritable([mount({ mode: 'ro' })], dispatched)).toBe(true);
+  });
+
+  it('ro + readerCanEdit false → NOT offered (never show a control that refuses)', () => {
+    expect(corpusWritable([mount({ mode: 'ro', readerCanEdit: false })], dispatched)).toBe(false);
   });
 });

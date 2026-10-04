@@ -46,14 +46,28 @@ export function useEditAffordance(readOnly: boolean): EditAffordance {
 
   // Read the corpus identity through the mount list's identity, so the memo re-runs when
   // the host re-announces a mount. The root itself is latched at boot (see `contentRoot`);
-  // the MODE is not, and that is the half this hook exists to keep current.
-  const corpus = useMemo(
-    () => ({ dispatched: isDispatched(), contentRoot: getContentRoot(), mountId: getCorpusMountId() }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mounts],
-  );
+  // the MODE is not, and that is the half this hook exists to keep current. R3-877: the
+  // delegation's live MODE now also routes the delivery (rw → the edit-file overlay,
+  // ro → the workbench under the reader's authority).
+  const corpus = useMemo(() => {
+    const mountId = getCorpusMountId();
+    const mount = mounts?.find((m) => (m.id ?? m.path) === mountId);
+    return { dispatched: isDispatched(), contentRoot: getContentRoot(), mountId, mountMode: mount?.mode ?? null };
+  }, [mounts]);
 
-  const writable = !readOnly && corpusWritable(mounts, corpus);
+  // R3-877: a `read-only` refusal (the READER cannot edit the source) hides the
+  // affordance until the next mount announcement — the hint's re-announcement is
+  // exactly what unlatches it. Reset on every mount-list change — the
+  // render-adjusted-state pattern (not an effect, which would paint one frame
+  // stale), the React-sanctioned form.
+  const [readerReadOnly, setReaderReadOnly] = useState(false);
+  const [resetFor, setResetFor] = useState(mounts);
+  if (resetFor !== mounts) {
+    setResetFor(mounts);
+    setReaderReadOnly(false);
+  }
+
+  const writable = !readOnly && !readerReadOnly && corpusWritable(mounts, corpus);
 
   // A refusal surfaces where the affordance was offered (3.3.1, R3-608);
   // `cancelled` — the reader closing the editor — stays silent by contract.
@@ -75,10 +89,31 @@ export function useEditAffordance(readOnly: boolean): EditAffordance {
         requestEdit({ path: target.path }).catch(refusedUnlessCancelled).finally(done);
         return;
       }
-      // Dispatch: attenuate the corpus delegation down to this one file and hand it to
-      // the platform editor. Nothing new is minted — we already hold the directory, and
-      // `edit-file` is one hop further along a chain §5.7.1 bounds at depth 4. The host
-      // resolves the cap against OUR grants, so this can only ever narrow.
+      // Dispatch, READ-ONLY delegation: ask the WORKBENCH to open the entry's source
+      // under the reader's authority (R3-876 / APP_CUSTOMIZATION §5a). Our chroot is
+      // never upgraded and nothing is minted for us; the host needs a real gesture,
+      // which this click is. `cancelled` stays silent; `read-only` hides the
+      // affordance until the next mount announcement; anything else renders in place
+      // as text (the `refused` flag) — and is never retried through `edit-file`.
+      if (target.via === 'workbench') {
+        requestEdit({ bundleFile: target.relPath })
+          .catch((e: unknown) => {
+            const code = (e as { code?: string } | null)?.code;
+            if (code === 'cancelled') return;
+            if (code === 'read-only') {
+              setReaderReadOnly(true);
+              return;
+            }
+            setRefused(true);
+          })
+          .finally(done);
+        return;
+      }
+      // Dispatch, writable delegation: attenuate the corpus delegation down to this
+      // one file and hand it to the platform editor. Nothing new is minted — we
+      // already hold the directory, and `edit-file` is one hop further along a chain
+      // §5.7.1 bounds at depth 4. The host resolves the cap against OUR grants, so
+      // this can only ever narrow.
       invokeTask('edit-file', {
         file: capFile({ mountId: target.mountId, relPath: target.relPath }, { mode: 'rw' }),
       })
