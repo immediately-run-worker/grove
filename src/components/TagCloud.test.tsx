@@ -82,11 +82,14 @@ describe('TagCloud', () => {
     for (const chip of all) expect(chip.style.fontSize).toBe('');
   });
 
-  it('limit={1} renders only the most-used tag', async () => {
+  it('limit={1} renders only the most-used tag, still scaled against the corpus', async () => {
     const container = await mountCloud(1);
     const all = chips(container);
     expect(all.length).toBe(1);
     expect(all[0]!.textContent).toContain('bug');
+    // Corpus-relative (not subset-relative): the corpus maximum keeps weight 1
+    // under the limit — subset scaling would give it min === max → 0.
+    expect(all[0]!.style.getPropertyValue('--tag-weight')).toBe('1');
   });
 
   it('limit={0} is treated as absent and warns once', async () => {

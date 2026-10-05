@@ -42,7 +42,9 @@ export default function TagCloud({ limit }: { limit?: number }) {
     return { tag: tag!, count: Number(count) };
   });
   const shown = topTags(pairs, limitOk ? limit : undefined);
-  const counts = shown.map((p) => p.count);
+  // The scale is relative to the CORPUS (every tag), not the shown subset —
+  // under a limit the corpus's most-used tag must still read as the largest.
+  const counts = pairs.map((p) => p.count);
   const min = Math.min(...counts);
   const max = Math.max(...counts);
 
