@@ -1677,6 +1677,17 @@ a.gdl-row {
   gap: 8px;
   align-items: center;
 }
+/* The weighted cloud's pixel range lives HERE and nowhere else (the component
+   only sets --tag-weight): 11.5px (the plain .grove-tag size) to 22px. The rule
+   hangs off the --weighted modifier because TagList shares the .grove-tagcloud
+   wrapper and must stay unweighted. */
+.grove-tagcloud--weighted .grove-tag {
+  font-size: calc(11.5px + var(--tag-weight, 0) * 10.5px);
+}
+.grove-tag__count {
+  opacity: 0.5;
+  margin-left: 4px;
+}
 
 /* ============ skeleton ============ */
 @keyframes gshimmer {
