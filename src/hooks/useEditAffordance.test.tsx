@@ -32,7 +32,7 @@ const RO_MOUNT = { type: 'task-delegation', path: '/task/t1/dir', id: '/task/t1/
 
 let latest: EditAffordance | null = null;
 function Probe() {
-  const affordance = useEditAffordance(false);
+  const affordance = useEditAffordance();
   useEffect(() => {
     latest = affordance;
   });
@@ -72,10 +72,22 @@ const open = async (key = `${getContentRoot()}plot/the-rail.mdx`) => {
 describe('useEditAffordance — the workbench delivery (R3-877)', () => {
   it('an ro delegation offers Edit and delivers it as requestEdit({ bundleFile })', async () => {
     expect(latest!.writable).toBe(true);
+    expect(latest!.writable).toBe(true);
     await open();
     expect(requestEditMock).toHaveBeenCalledWith({ bundleFile: '/plot/the-rail.mdx' });
     expect(invokeTaskMock).not.toHaveBeenCalled();
     expect(latest!.refused).toBe(false);
+  });
+
+  it('the ro corpus latch (the boot path of every opener delegation) does NOT hide the offer — R3-878 regression', () => {
+    // The bug the venue leg caught: the boot latches the corpus's `ro` mode as the
+    // contentRoot readOnly flag, and the pre-fix hook gated `writable` on it — so an
+    // app-declared opener's chroot (always `ro`, APP_CUSTOMIZATION §5a) never showed
+    // the pencil, although the reader's authority may well edit the source.
+    resetContentRoot();
+    setContentRoot('/task/t1/dir', { readOnly: true, mountId: '/task/t1/dir' });
+    rerender();
+    expect(latest!.writable).toBe(true);
   });
 
   it('an ro delegation with `readerCanEdit: false` does not offer the control', () => {

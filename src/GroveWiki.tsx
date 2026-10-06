@@ -80,10 +80,8 @@ function bundleHref(bundlePath: string): string {
  * (R3-169: under dispatch the root is a runtime value, not `/app/content/`).
  */
 export default function GroveWiki({
-  readOnly = false,
   rejectedComponents = [],
 }: {
-  readOnly?: boolean;
   /** Corpus component declarations that could not be loaded (R3-174). Shown, not
    *  swallowed: a `<RoadmapBoard/>` that silently never appears is indistinguishable from
    *  one nobody wrote, and the author has no other channel to learn which it was. */
@@ -166,7 +164,7 @@ export default function GroveWiki({
   // `lib/editTarget` — and the gate is the corpus mount's CURRENT mode, re-read on every
   // mount change so a live role downgrade hides the affordance instead of producing
   // `EROFS` on click.
-  const { writable, busy: editBusy, refused: editRefused, openEditor, editHint } = useEditAffordance(readOnly);
+  const { writable, busy: editBusy, refused: editRefused, openEditor, editHint } = useEditAffordance();
 
   const routeKey = sandboxPathToKey(sandboxPath) || homeKey();
   // The site brand is a wiki-wide constant, so read it from the home entry's

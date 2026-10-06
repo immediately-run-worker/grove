@@ -126,7 +126,7 @@ export default function EntryBody({ entryKey }: { entryKey: string }) {
  *  from the live mount set (the hook only runs on this path — no double
  *  subscription on the stock page). */
 function StandaloneHeader({ entryKey, mins }: { entryKey: string; mins: number }) {
-  const local = useEditAffordance(false);
+  const local = useEditAffordance();
   return (
     <EntryHeader
       entryKey={entryKey}

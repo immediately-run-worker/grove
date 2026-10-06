@@ -17,6 +17,12 @@
         "version": "^1"
       }
     ],
+    "opens": [
+      {
+        "app": "self",
+        "version": "^1"
+      }
+    ],
     "requests": {
       "task:invoke": {},
       "llm:chat": {}

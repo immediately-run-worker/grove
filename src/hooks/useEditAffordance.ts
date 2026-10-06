@@ -41,7 +41,7 @@ export interface EditAffordance {
   editHint: string;
 }
 
-export function useEditAffordance(readOnly: boolean): EditAffordance {
+export function useEditAffordance(): EditAffordance {
   const mounts = useMounts();
   const [busy, setBusy] = useState(false);
   const [refused, setRefused] = useState(false);
@@ -69,7 +69,13 @@ export function useEditAffordance(readOnly: boolean): EditAffordance {
     setReaderReadOnly(false);
   }
 
-  const writable = !readOnly && !readerReadOnly && corpusWritable(mounts, corpus);
+  // No `readOnly` veto here (there was one until R3-878's live leg): the boot-time
+  // read-only latch IS the corpus delegation's `ro` mode, so gating on it hid the
+  // affordance in exactly the one case the workbench delivery exists for — an
+  // app-declared opener's chroot is ALWAYS `ro` (APP_CUSTOMIZATION §5a). The live
+  // mount list already answers writability (`corpusWritable`), re-read on every
+  // announcement, and a `read-only` refusal latches the offer off above.
+  const writable = !readerReadOnly && corpusWritable(mounts, corpus);
 
   // A refusal surfaces where the affordance was offered (3.3.1, R3-608);
   // `cancelled` — the reader closing the editor — stays silent by contract.

@@ -107,7 +107,7 @@ export default function App() {
   // hackability). §2's "single-map merge, never provider nesting" was written against
   // patching a provider in AFTER a partial render; nesting it INSIDE the gate above is
   // that same merge, composed before anything paints.
-  const wiki = <GroveWiki readOnly={boot.readOnly} rejectedComponents={contentComponents.rejected} />;
+  const wiki = <GroveWiki rejectedComponents={contentComponents.rejected} />;
   const withComponents =
     contentComponents.status === 'ready' && Object.keys(contentComponents.components).length > 0 ? (
       <MDXProvider components={contentComponents.components}>{wiki}</MDXProvider>

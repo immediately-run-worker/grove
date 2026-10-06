@@ -288,7 +288,7 @@ describe('R3-608 — the composer stops the run; a refusal surfaces, a cancel do
     const { useEditAffordance } = await import('../hooks/useEditAffordance');
     const refusedStates: boolean[] = [];
     function Probe() {
-      const aff = useEditAffordance(false);
+      const aff = useEditAffordance();
       refusedStates.push(aff.refused);
       return (
         <div>
