@@ -13,10 +13,19 @@
 // than producing `EROFS` on click — and a `readerCanEdit: false` hint or a `read-only`
 // refusal hides the offer — and it hands back one `openEditor(entryKey)` the chrome
 // calls without knowing which packaging it is in.
-import { useCallback, useMemo, useState } from 'react';
-import { capFile, invokeTask, requestEdit, useMounts } from '@immediately-run/sdk';
-import { getContentRoot, getCorpusMountId, isDispatched } from '../lib/contentRoot';
-import { corpusWritable, editTarget } from '../lib/editTarget';
+import { useCallback, useMemo, useState } from "react";
+import {
+  capFile,
+  invokeTask,
+  requestEdit,
+  useMounts,
+} from "@immediately-run/sdk";
+import {
+  getContentRoot,
+  getCorpusMountId,
+  isDispatched,
+} from "../lib/contentRoot";
+import { corpusWritable, editTarget } from "../lib/editTarget";
 
 export interface EditAffordance {
   /** Whether to render an edit affordance at all — the MOUNT's answer, live. */
@@ -54,7 +63,12 @@ export function useEditAffordance(): EditAffordance {
   const corpus = useMemo(() => {
     const mountId = getCorpusMountId();
     const mount = mounts?.find((m) => (m.id ?? m.path) === mountId);
-    return { dispatched: isDispatched(), contentRoot: getContentRoot(), mountId, mountMode: mount?.mode ?? null };
+    return {
+      dispatched: isDispatched(),
+      contentRoot: getContentRoot(),
+      mountId,
+      mountMode: mount?.mode ?? null,
+    };
   }, [mounts]);
 
   // R3-877: a `read-only` refusal (the reader cannot edit the source) hides the
@@ -70,9 +84,9 @@ export function useEditAffordance(): EditAffordance {
   }
 
   // No `readOnly` veto here (there was one until R3-878's live leg): the boot-time
-  // read-only latch IS the corpus delegation's `ro` mode, so gating on it hid the
+  // read-only latch is the corpus delegation's `ro` mode, so gating on it hid the
   // affordance in exactly the one case the workbench delivery exists for — an
-  // app-declared opener's chroot is ALWAYS `ro` (APP_CUSTOMIZATION §5a). The live
+  // app-declared opener's chroot is always `ro` (APP_CUSTOMIZATION §5a). The live
   // mount list already answers writability (`corpusWritable`), re-read on every
   // announcement, and a `read-only` refusal latches the offer off above.
   const writable = !readerReadOnly && corpusWritable(mounts, corpus);
@@ -80,7 +94,7 @@ export function useEditAffordance(): EditAffordance {
   // A refusal surfaces where the affordance was offered (3.3.1, R3-608);
   // `cancelled` — the reader closing the editor — stays silent by contract.
   const refusedUnlessCancelled = (e: unknown): undefined => {
-    if ((e as { code?: string } | null)?.code !== 'cancelled') setRefused(true);
+    if ((e as { code?: string } | null)?.code !== "cancelled") setRefused(true);
     return undefined;
   };
 
@@ -91,10 +105,12 @@ export function useEditAffordance(): EditAffordance {
       setBusy(true);
       setRefused(false);
       const done = () => setBusy(false);
-      if (target.via === 'self') {
+      if (target.via === "self") {
         // The fork: the present→edit transition on our own source. Self-scoped by
         // contract, which is exactly right when the corpus IS our repo.
-        requestEdit({ path: target.path }).catch(refusedUnlessCancelled).finally(done);
+        requestEdit({ path: target.path })
+          .catch(refusedUnlessCancelled)
+          .finally(done);
         return;
       }
       // Dispatch, read-only delegation: ask the workbench to open the entry's source
@@ -103,12 +119,12 @@ export function useEditAffordance(): EditAffordance {
       // which this click is. `cancelled` stays silent; `read-only` hides the
       // affordance until the next mount announcement; anything else renders in place
       // as text (the `refused` flag) — and is never retried through `edit-file`.
-      if (target.via === 'workbench') {
+      if (target.via === "workbench") {
         requestEdit({ bundleFile: target.relPath })
           .catch((e: unknown) => {
             const code = (e as { code?: string } | null)?.code;
-            if (code === 'cancelled') return;
-            if (code === 'read-only') {
+            if (code === "cancelled") return;
+            if (code === "read-only") {
               setReaderReadOnly(true);
               return;
             }
@@ -122,8 +138,11 @@ export function useEditAffordance(): EditAffordance {
       // already hold the directory, and `edit-file` is one hop further along a chain
       // §5.7.1 bounds at depth 4. The host resolves the cap against our grants, so
       // this can only ever narrow.
-      invokeTask('edit-file', {
-        file: capFile({ mountId: target.mountId, relPath: target.relPath }, { mode: 'rw' }),
+      invokeTask("edit-file", {
+        file: capFile(
+          { mountId: target.mountId, relPath: target.relPath },
+          { mode: "rw" },
+        ),
       })
         .catch(refusedUnlessCancelled) // `cancelled` is how a reader closes the editor
         .finally(done);
@@ -132,8 +151,8 @@ export function useEditAffordance(): EditAffordance {
   );
 
   const editHint = corpus.dispatched
-    ? 'Edits save to the mounted content, and can be proposed back to its repository as a PR.'
-    : 'Edit this entry';
+    ? "Edits save to the mounted content, and can be proposed back to its repository as a PR."
+    : "Edit this entry";
 
   return { writable, busy, refused, openEditor, editHint };
 }
